@@ -25,7 +25,7 @@ final class StartCommandTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8888,
+            8899,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
@@ -56,7 +56,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8888,
+            '--port' => 8899,
         ]);
         $output = new BufferedOutput();
 
@@ -77,7 +77,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8888,
+            '--port' => 8899,
         ]);
         $output = new BufferedOutput();
 
@@ -94,7 +94,7 @@ final class StartCommandTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8888,
+            8899,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
@@ -140,7 +140,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8888,
+            '--port' => 8899,
         ]);
         $output = new BufferedOutput();
 
