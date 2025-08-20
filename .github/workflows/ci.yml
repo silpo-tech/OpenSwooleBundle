@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+        dependency-version: [prefer-lowest, prefer-stable]
+
+    name: PHP ${{ matrix.php-version }} - ${{ matrix.dependency-version }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: json, mbstring, xml, pcov, openswool, mongodb
+        coverage: pcov
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-${{ matrix.php-version }}-
+
+    - name: Install dependencies
+      run: composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction
+
+    - name: Run test suite
+      run: composer test:run
+
+    - name: Run tests with coverage
+      if: matrix.php-version == '8.3' && matrix.dependency-version == 'prefer-stable'
+      run: composer test:coverage
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.php-version == '8.3' && matrix.dependency-version == 'prefer-stable'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./reports/coverage/clover.xml
+        flags: php-${{ matrix['php-version'] }}
+        name: phpunit-${{ matrix['php-version'] }}
+        fail_ci_if_error: true
+        verbose: true
+        use_oidc: true
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    name: Static Analysis
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: json, mbstring, xml
+        tools: phpstan
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-8.3-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-8.3-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction
+
+    - name: Run PHPStan
+      run: bin/phpstan analyse --error-format=github
+
+  code-style:
+    runs-on: ubuntu-latest
+    name: Code Style
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: json, mbstring, xml
+        tools: php-cs-fixer
+
+    - name: Cache Composer packages
+      id: composer-cache
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-php-8.3-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-php-8.3-
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction
+
+    - name: Run PHP CS Fixer
+      run: bin/php-cs-fixer fix --dry-run --diff --verbose

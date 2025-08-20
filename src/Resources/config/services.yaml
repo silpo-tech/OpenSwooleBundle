@@ -1,0 +1,68 @@
+services:
+  # default configuration for services in *this* file
+  _defaults:
+    # automatically injects dependencies in your services
+    autowire: true
+    # automatically registers your services as commands, event subscribers, etc.
+    autoconfigure: true
+    # this means you cannot fetch services directly from the container via $container->get()
+    # if you need to do this, you can override this setting on individual services
+    public: false
+
+  OpenSwooleBundle\Swoole\Server:
+    public: true
+    arguments:
+     - ""
+     - ""
+     - ""
+     - ""
+     - "@kernel"
+     - "@logger"
+     - true
+     - '@openswoole_bundle.server.symfony_request_factory'
+     - '@openswoole_bundle.server.psr_factory'
+     - null
+     - null
+
+  OpenSwooleBundle\Command\:
+    resource: '../../Command'
+    tags:
+      - console.command
+
+  OpenSwooleBundle\EventSubscriber\ContainerSubscriber:
+    class: OpenSwooleBundle\EventSubscriber\ContainerSubscriber
+    arguments:
+      - !tagged_iterator kernel.reset
+    tags:
+      - { name: kernel.event_subscriber }
+
+  OpenSwooleBundle\EventSubscriber\AMQPReconnectSubscriber:
+    public: true
+    class: OpenSwooleBundle\EventSubscriber\AMQPReconnectSubscriber
+    tags:
+      - { name: kernel.event_subscriber }
+  
+  openswoole_bundle.server_task_messenger_handler:
+    class: OpenSwooleBundle\Swoole\Handler\MessengerSendTaskHandler
+  
+  openswoole_bundle.server_task_noop_finish_handler:
+    class: OpenSwooleBundle\Swoole\Handler\NoopTaskFinishHandler
+
+  OpenSwooleBundle\Swoole\Handler\TaskHandlerInterface:
+    alias: openswoole_bundle.server_task_messenger_handler
+    public: true
+
+  OpenSwooleBundle\Swoole\Handler\TaskFinishHandlerInterface:
+    alias: openswoole_bundle.server_task_noop_finish_handler
+    public: true
+
+  openswoole_bundle.server.symfony_request_factory:
+    class: OpenSwooleBundle\Swoole\HttpFoundationFactoryDecorator
+    arguments:
+      - '@openswoole_bundle.server.symfony_request_factory.decorated'
+  
+  openswoole_bundle.server.symfony_request_factory.decorated:
+    class: Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory
+  
+  openswoole_bundle.server.psr_factory:
+    class: Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory

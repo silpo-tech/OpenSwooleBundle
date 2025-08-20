@@ -1,0 +1,23 @@
+codecov:
+  require_ci_to_pass: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+
+coverage:
+  precision: 2
+  round: down
+  status:
+    project:
+      default:
+        target: 80%      # overall project target
+        threshold: 1%    # allow small variance
+    patch:
+      default:
+        target: 80%      # changed lines must be covered ≥ this
+        threshold: 0.5%
+
+ignore:
+  - "tests/**"
+  - "vendor/**"
