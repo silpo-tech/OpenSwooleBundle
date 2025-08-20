@@ -34,7 +34,7 @@ class Configuration implements ConfigurationInterface
             ->end()
             ->scalarNode('pid_file')
             ->cannotBeEmpty()
-            ->defaultValue(getenv('HOME') . '/open_swoole_server.pid')
+            ->defaultValue(getenv('HOME').'/open_swoole_server.pid')
             ->end()
             ->scalarNode('log_file')
             ->cannotBeEmpty()

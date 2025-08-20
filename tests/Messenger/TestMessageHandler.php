@@ -20,6 +20,6 @@ final readonly class TestMessageHandler
             usleep($this->micros);
         }
 
-        $this->logger->info('Handled message: ' . $message->message);
+        $this->logger->info('Handled message: '.$message->message);
     }
 }

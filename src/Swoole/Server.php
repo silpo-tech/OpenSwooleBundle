@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OpenSwooleBundle\Swoole;
 
-use Closure;
 use OpenSwoole\Core\Psr\Response as OpenSwooleResponse;
 use OpenSwoole\Core\Psr\ServerRequest;
 use OpenSwoole\Process;
@@ -85,7 +84,7 @@ class Server
      */
     private $taskFinishHandler;
 
-    private Closure|null $onShutdown = null;
+    private ?\Closure $onShutdown = null;
 
     public function __construct(
         string $host,
@@ -97,9 +96,9 @@ class Server
         bool $useSyncWorker,
         private HttpFoundationFactoryInterface $symfonyRequestFactory,
         private HttpMessageFactoryInterface $psrFactory,
-        TaskHandlerInterface|null $taskHandler = null,
-        TaskFinishHandlerInterface|null $taskFinishHandler = null,
-        private EventDispatcherInterface|null $eventDispatcher = null,
+        ?TaskHandlerInterface $taskHandler = null,
+        ?TaskFinishHandlerInterface $taskFinishHandler = null,
+        private ?EventDispatcherInterface $eventDispatcher = null,
     ) {
         $this->host = $host;
         $this->port = $port;
@@ -162,7 +161,7 @@ class Server
      */
     public function start(
         callable $onStart,
-        callable|null $onShutdown = null,
+        ?callable $onShutdown = null,
     ): void {
         $this->createServer();
         $this->configureSwooleServer();
@@ -280,7 +279,7 @@ class Server
         Runtime::enableCoroutine($this->getOption('enable_coroutine'), $this->hookFlags);
     }
 
-    private function symfonyBridge(callable $onStart, callable|null $onShutdown = null): void
+    private function symfonyBridge(callable $onStart, ?callable $onShutdown = null): void
     {
         $onShutdown ??= $this->onShutdown;
 
@@ -288,7 +287,7 @@ class Server
             $onStart('Server started!');
         });
 
-        if ($this->taskHandler !== null) {
+        if (null !== $this->taskHandler) {
             $this->server->on('task', function (\OpenSwoole\HTTP\Server $server, Task $task) {
                 $this->eventDispatcher?->dispatch(new ServerTaskStarted($task));
                 $this->taskHandler->handle($this->server, $task);
@@ -296,15 +295,14 @@ class Server
             });
         }
 
-        if ($this->taskFinishHandler !== null) {
+        if (null !== $this->taskFinishHandler) {
             $this->server->on(
                 'finish',
-                fn (\OpenSwoole\HTTP\Server $server, int $taskId, mixed $data) =>
-                    $this->taskFinishHandler->handle($this->server, $taskId, $data),
+                fn (\OpenSwoole\HTTP\Server $server, int $taskId, mixed $data) => $this->taskFinishHandler->handle($this->server, $taskId, $data),
             );
         }
 
-        if ($onShutdown !== null) {
+        if (null !== $onShutdown) {
             $this->server->on('shutdown', $onShutdown);
         }
 
@@ -374,7 +372,7 @@ class Server
         return is_array($this->server->getClientList()) ? count($this->server->getClientList()) : 0;
     }
 
-    public function task(mixed $data, int $dstWorkerId = -1, callable|null $finishCallback = null): int|null
+    public function task(mixed $data, int $dstWorkerId = -1, ?callable $finishCallback = null): ?int
     {
         if (!isset($this->server) || !$this->isRunning()) {
             return null;
@@ -386,14 +384,14 @@ class Server
 
         $taskId = $this->server->task($data, $dstWorkerId, $finishCallback);
 
-        if ($taskId === false) {
+        if (false === $taskId) {
             return null;
         }
 
         return $taskId;
     }
 
-    public function setOnShutdown(Closure $onShutdown): void
+    public function setOnShutdown(\Closure $onShutdown): void
     {
         $this->onShutdown = $onShutdown;
     }

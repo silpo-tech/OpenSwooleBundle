@@ -11,7 +11,6 @@ use OpenSwoole\Server;
 use OpenSwoole\Server\Task;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Throwable;
 
 final class MessengerSendTaskHandler implements TaskHandlerInterface
 {
@@ -19,7 +18,7 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
 
     public function __construct(
         private MessageBusInterface $messenger,
-        LoggerInterface|null $logger = null,
+        ?LoggerInterface $logger = null,
     ) {
         $this->logger = $logger ?? self::createPlainLogger();
     }
@@ -28,7 +27,7 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
     {
         try {
             $this->messenger->dispatch($task->data);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $this->logger->error(
                 sprintf(
                     "Failed to dispatch task #%d.\nReason: %s.\nTrace: %s.",

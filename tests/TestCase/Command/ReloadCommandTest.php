@@ -7,7 +7,6 @@ namespace OpenSwooleBundle\Tests\TestCase\Command;
 use OpenSwooleBundle\Command\ReloadCommand;
 use OpenSwooleBundle\Swoole\Server;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
@@ -31,7 +30,7 @@ final class ReloadCommandTest extends TestCase
     public function testExecuteExceptionHandled(): void
     {
         $server = $this->createMock(Server::class);
-        $server->expects(self::once())->method('isRunning')->willThrowException(new RuntimeException('test message'));
+        $server->expects(self::once())->method('isRunning')->willThrowException(new \RuntimeException('test message'));
 
         $command = new ReloadCommand($server);
 

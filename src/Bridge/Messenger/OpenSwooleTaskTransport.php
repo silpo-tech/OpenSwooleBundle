@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OpenSwooleBundle\Bridge\Messenger;
 
-use BadMethodCallException;
 use OpenSwooleBundle\Swoole\Server;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -26,7 +25,7 @@ final readonly class OpenSwooleTaskTransport implements TransportInterface
     {
         /** @var SentStamp|null $sentStamp */
         $sentStamp = $envelope->last(SentStamp::class);
-        $alias = $sentStamp === null
+        $alias = null === $sentStamp
             ? self::DEFAULT_TRANSPORT_NAME
             : $sentStamp->getSenderAlias() ?? $sentStamp->getSenderClass();
 
@@ -34,7 +33,7 @@ final readonly class OpenSwooleTaskTransport implements TransportInterface
 
         $taskId = $this->server->task($envelope);
 
-        if ($taskId === null) {
+        if (null === $taskId) {
             return $this->messageBus->dispatch($envelope);
         }
 
@@ -46,7 +45,7 @@ final readonly class OpenSwooleTaskTransport implements TransportInterface
      */
     public function get(): iterable
     {
-        throw new BadMethodCallException('Not implemented');
+        throw new \BadMethodCallException('Not implemented');
     }
 
     /**
@@ -54,7 +53,7 @@ final readonly class OpenSwooleTaskTransport implements TransportInterface
      */
     public function ack(Envelope $envelope): void
     {
-        throw new BadMethodCallException('Not implemented');
+        throw new \BadMethodCallException('Not implemented');
     }
 
     /**
@@ -62,6 +61,6 @@ final readonly class OpenSwooleTaskTransport implements TransportInterface
      */
     public function reject(Envelope $envelope): void
     {
-        throw new BadMethodCallException('Not implemented');
+        throw new \BadMethodCallException('Not implemented');
     }
 }

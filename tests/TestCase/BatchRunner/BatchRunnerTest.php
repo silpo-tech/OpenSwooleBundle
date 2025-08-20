@@ -47,8 +47,7 @@ final class BatchRunnerTest extends TestCase
     {
         $data = [];
 
-        $callable = static fn (string $param1, int $param2, array $param3 = []): string
-            => sprintf('Got params: %s, %d, %s', $param1, $param2, json_encode($param3));
+        $callable = static fn (string $param1, int $param2, array $param3 = []): string => sprintf('Got params: %s, %d, %s', $param1, $param2, json_encode($param3));
 
         $arguments = [
             'someKey1' => ['value1', 2, ['arrayItem1' => 'arrayValue1']],

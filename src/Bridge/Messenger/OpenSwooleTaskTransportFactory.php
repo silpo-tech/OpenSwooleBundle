@@ -25,6 +25,6 @@ final class OpenSwooleTaskTransportFactory implements TransportFactoryInterface
 
     public function supports(string $dsn, array $options): bool
     {
-        return mb_strpos($dsn, 'openswoole://server-task') === 0;
+        return 0 === mb_strpos($dsn, 'openswoole://server-task');
     }
 }

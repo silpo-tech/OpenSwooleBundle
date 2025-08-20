@@ -18,7 +18,6 @@ use OpenSwooleBundle\Exception\BatchRunnerStartedException;
 use OpenSwooleBundle\Swoole\CoroutineHelper;
 use OpenSwooleBundle\ValueObject\Result;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use Throwable;
 
 final class BatchRunner
 {
@@ -36,7 +35,7 @@ final class BatchRunner
         private array $callables,
         private int $hookFlags = Runtime::HOOK_ALL,
         private bool $setRuntimeHooks = true,
-        private EventDispatcherInterface|null $eventDispatcher = null,
+        private ?EventDispatcherInterface $eventDispatcher = null,
     ) {
         $this->callablesCount = count($callables);
         $this->prevHookFlags = Runtime::getHookFlags();
@@ -100,7 +99,7 @@ final class BatchRunner
     {
         $this->start();
 
-        if ($this->throwables !== []) {
+        if ([] !== $this->throwables) {
             throw BatchRunException::fromThrowables($this->throwables);
         }
 
@@ -111,7 +110,7 @@ final class BatchRunner
      * Blocks until all callables have been finished.
      * Returns results and throwables.
      *
-     * @return array{array<array-key, mixed>, array<array-key, Throwable>}
+     * @return array{array<array-key, mixed>, array<array-key, \Throwable>}
      */
     public function runAny(): array
     {
@@ -192,7 +191,7 @@ final class BatchRunner
                 $eventDispatcher?->dispatch(
                     new BatchRunnerItemEndedSuccessfully($batchRunner, (string) $key),
                 );
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 $result = Result::fromThrowable($e);
 
                 $eventDispatcher?->dispatch(

@@ -7,7 +7,6 @@ namespace OpenSwooleBundle\Tests\TestCase\EventSubscriber;
 use OpenSwooleBundle\EventSubscriber\ContainerSubscriber;
 use OpenSwooleBundle\Tests\Kernel;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -21,7 +20,7 @@ final class ContainerSubscriberTest extends TestCase
         $resetableService->expects(self::once())->method('reset');
         $services = [
             $resetableService,
-            new stdClass(),
+            new \stdClass(),
             'string',
             123,
             [],

@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace OpenSwooleBundle\Exception;
 
-use RuntimeException;
-use Throwable;
-
-final class BatchRunException extends RuntimeException
+final class BatchRunException extends \RuntimeException
 {
     /**
-     * @param array<array-key, Throwable> $throwables
+     * @param array<array-key, \Throwable> $throwables
      */
     private function __construct(
         public readonly array $throwables,
@@ -26,7 +23,7 @@ final class BatchRunException extends RuntimeException
     }
 
     /**
-     * @param non-empty-array<array-key, Throwable> $throwables
+     * @param non-empty-array<array-key, \Throwable> $throwables
      */
     public static function fromThrowables(array $throwables): self
     {
@@ -34,7 +31,7 @@ final class BatchRunException extends RuntimeException
     }
 
     /**
-     * @return non-empty-array<array-key,Throwable>
+     * @return non-empty-array<array-key,\Throwable>
      */
     public function getOriginalThrowables(): array
     {

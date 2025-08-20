@@ -14,7 +14,7 @@ abstract class ServerCommand extends Command
      */
     protected $server;
 
-    public function __construct(Server $server, string|null $name = null)
+    public function __construct(Server $server, ?string $name = null)
     {
         $this->server = $server;
         parent::__construct($name);

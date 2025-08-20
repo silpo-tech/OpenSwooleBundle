@@ -14,12 +14,11 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Throwable;
 
 final class AMQPReconnectSubscriberTest extends TestCase
 {
     #[DataProvider('dataProviderOnKernelException')]
-    public function testOnKernelException(Throwable $throwable, bool $expected): void
+    public function testOnKernelException(\Throwable $throwable, bool $expected): void
     {
         $server = $this->createMock(Server::class);
         $server->expects(self::exactly($expected ? 1 : 0))->method('stopWorker');

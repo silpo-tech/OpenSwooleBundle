@@ -376,14 +376,14 @@ final class ServerTest extends TestCase
     {
         $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8888?req=' . $numReq);
+        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8888?req='.$numReq);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
         curl_setopt($ch, CURLOPT_HEADER, 0);
 
         $output = curl_exec($ch);
-        if ($output === false) {
-            throw new \RuntimeException('CURL Error:' . curl_error($ch));
+        if (false === $output) {
+            throw new \RuntimeException('CURL Error:'.curl_error($ch));
         }
 
         curl_close($ch);
@@ -394,7 +394,7 @@ final class ServerTest extends TestCase
     private static function createLogger(): LoggerInterface
     {
         $handler = new StreamHandler(self::TEST_LOG_FILE, LogLevel::DEBUG);
-        $handler->setFormatter(new LineFormatter('%message%' . PHP_EOL));
+        $handler->setFormatter(new LineFormatter('%message%'.PHP_EOL));
         $logger = new Logger(
             'test',
             [

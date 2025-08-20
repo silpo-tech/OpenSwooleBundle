@@ -11,7 +11,6 @@ use OpenSwooleBundle\Swoole\Server;
 use OpenSwooleBundle\Tests\Kernel;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use RuntimeException;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -72,7 +71,7 @@ final class StartCommandTest extends TestCase
     public function testExecuteExceptionHandled(): void
     {
         $server = $this->createMock(Server::class);
-        $server->expects(self::once())->method('isRunning')->willThrowException(new RuntimeException('test message'));
+        $server->expects(self::once())->method('isRunning')->willThrowException(new \RuntimeException('test message'));
 
         $command = new StartCommand($server);
 

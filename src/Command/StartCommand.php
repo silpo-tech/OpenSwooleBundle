@@ -37,6 +37,7 @@ class StartCommand extends ServerCommand
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $style = new SymfonyStyle($input, $output);
+
         try {
             if ($this->server->isRunning()) {
                 $style->warning('Server is running! Please before stop the server.');

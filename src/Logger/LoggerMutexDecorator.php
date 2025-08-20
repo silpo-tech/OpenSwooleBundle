@@ -85,7 +85,7 @@ final class LoggerMutexDecorator implements HandlerInterface, ProcessableHandler
         return $this->handler->getFormatter();
     }
 
-    private function getMutex(): MutexInterface|null
+    private function getMutex(): ?MutexInterface
     {
         if (!CoroutineHelper::inCoroutine()) {
             return null;
@@ -97,11 +97,12 @@ final class LoggerMutexDecorator implements HandlerInterface, ProcessableHandler
     private function once(callable $cb): mixed
     {
         $mutex = $this->getMutex();
-        if ($mutex === null) {
+        if (null === $mutex) {
             return $cb();
         }
 
         $this->mutex->lock();
+
         try {
             $res = $cb();
         } finally {
