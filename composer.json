@@ -5,8 +5,6 @@
   "license": "MIT",
   "require": {
     "php": ">=8.2",
-    "ext-openswoole": "*",
-    "ext-mongodb": "*",
     "upscale/swoole-blackfire": "^4.0",
     "symfony/dependency-injection": "^6.0|^7.0",
     "symfony/config": "^6.0|^7.0",
@@ -31,7 +29,12 @@
     "sentry/sentry": "^4.10",
     "php-amqplib/php-amqplib": "^3.7",
     "doctrine/orm": "^3.3",
-    "doctrine/mongodb-odm": "^2.11"
+    "doctrine/mongodb-odm": "^2.11",
+    "phpstan/phpstan": "^2.0",
+    "friendsofphp/php-cs-fixer": "^3.0"
+  },
+  "config": {
+    "bin-dir": "bin"
   },
   "autoload": {
     "psr-4": {
