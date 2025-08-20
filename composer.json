@@ -50,13 +50,13 @@
   "prefer-stable": true,
   "scripts": {
     "test:coverage": [
-      "php -d extension=pcov.so -d pcov.enabled=1 vendor/bin/phpunit --coverage-text --coverage-html ./reports/coverage --colors=never --coverage-cobertura=./reports/coverage/cobertura.xml --coverage-clover=./reports/coverage/clover.xml --log-junit=./reports/coverage/junit.xml"
+      "php -d extension=pcov.so -d pcov.enabled=1 bin/phpunit --coverage-text --coverage-html ./reports/coverage --colors=never --coverage-cobertura=./reports/coverage/cobertura.xml --coverage-clover=./reports/coverage/clover.xml --log-junit=./reports/coverage/junit.xml"
     ],
     "test:run": [
-      "php vendor/bin/phpunit --testdox"
+      "php bin/phpunit --testdox"
     ],
     "test:debug": {
-      "command": "debug vendor/bin/phpunit --color=always"
+      "command": "debug bin/phpunit --color=always"
     }
   }
 }
