@@ -92,7 +92,7 @@ final class ServerTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8888,
+            8889,
             [
                 'enable_coroutine' => true,
                 'hook_flags' => 0,
@@ -251,7 +251,7 @@ final class ServerTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8888,
+            8889,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
@@ -335,7 +335,7 @@ final class ServerTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8888,
+            8889,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
@@ -376,7 +376,7 @@ final class ServerTest extends TestCase
     {
         $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8888?req='.$numReq);
+        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8889?req='.$numReq);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
         curl_setopt($ch, CURLOPT_HEADER, 0);
