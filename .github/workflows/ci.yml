@@ -9,17 +9,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
     steps:
     - uses: actions/checkout@v4
     - name: Build and save Docker image
       run: |
-        docker build -t openswoole-bundle:latest .
-        docker save openswoole-bundle:latest | gzip > openswoole-bundle.tar.gz
+        docker build --build-arg PHP_VERSION=${{ matrix.php-version }} -t openswoole-bundle:${{ matrix.php-version }} .
+        docker save openswoole-bundle:${{ matrix.php-version }} | gzip > openswoole-bundle-${{ matrix.php-version }}.tar.gz
     - name: Upload Docker image
       uses: actions/upload-artifact@v4
       with:
-        name: openswoole-bundle-image
-        path: openswoole-bundle.tar.gz
+        name: openswoole-bundle-image-${{ matrix.php-version }}
+        path: openswoole-bundle-${{ matrix.php-version }}.tar.gz
         retention-days: 1
 
   test:
@@ -27,9 +30,10 @@ jobs:
     needs: build
     strategy:
       matrix:
+        php-version: ['8.2', '8.3', '8.4']
         dependency-version: [prefer-lowest, prefer-stable]
 
-    name: Test - ${{ matrix.dependency-version }}
+    name: Test PHP ${{ matrix.php-version }} - ${{ matrix.dependency-version }}
 
     permissions:
       contents: read
@@ -43,20 +47,20 @@ jobs:
     - name: Download Docker image
       uses: actions/download-artifact@v4
       with:
-        name: openswoole-bundle-image
+        name: openswoole-bundle-image-${{ matrix.php-version }}
 
     - name: Load Docker image
-      run: docker load < openswoole-bundle.tar.gz
+      run: docker load < openswoole-bundle-${{ matrix.php-version }}.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run test suite
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest composer test:run
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:run
 
     - name: Run tests with coverage
-      if: matrix.dependency-version == 'prefer-stable'
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest composer test:coverage
+      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3'
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:coverage
 
     - name: Upload coverage reports to Codecov
       if: matrix.dependency-version == 'prefer-stable'

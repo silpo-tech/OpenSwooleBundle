@@ -1,4 +1,5 @@
-FROM php:8.3-cli-bookworm
+ARG PHP_VERSION=8.3
+FROM php:${PHP_VERSION}-cli-bookworm
 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 
