@@ -12,7 +12,7 @@ final class Result
     /**
      * @param T $value
      */
-    public function __construct(public readonly mixed $value, public readonly ?\Throwable $throwable = null)
+    public function __construct(public readonly mixed $value, public readonly \Throwable|null $throwable = null)
     {
     }
 

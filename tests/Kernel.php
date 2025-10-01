@@ -12,7 +12,7 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 final class Kernel implements HttpKernelInterface, TerminableInterface
 {
     public function __construct(
-        private ?\Closure $handler = null,
+        private \Closure|null $handler = null,
     ) {
     }
 

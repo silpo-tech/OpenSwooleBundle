@@ -18,7 +18,7 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
 
     public function __construct(
         private MessageBusInterface $messenger,
-        ?LoggerInterface $logger = null,
+        LoggerInterface|null $logger = null,
     ) {
         $this->logger = $logger ?? self::createPlainLogger();
     }

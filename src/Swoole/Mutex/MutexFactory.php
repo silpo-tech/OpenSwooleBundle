@@ -17,7 +17,7 @@ final class MutexFactory
         return new NoopMutex();
     }
 
-    public static function createBetweenProcesses(): MutexInterface
+    public static function createBetweenProcesses(): AtomicMutex
     {
         return new AtomicMutex();
     }

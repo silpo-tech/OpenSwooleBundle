@@ -18,9 +18,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponseCode;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Upscale\Swoole\Blackfire\Profiler;
 
@@ -55,12 +54,12 @@ class Server
     private $useSyncWorker;
 
     /**
-     * @var \OpenSwoole\HTTP\Server
+     * @var \OpenSwoole\Http\Server
      */
     private $server;
 
     /**
-     * @var KernelInterface&TerminableInterface
+     * @var HttpKernelInterface
      */
     private $kernel;
 
@@ -84,7 +83,7 @@ class Server
      */
     private $taskFinishHandler;
 
-    private ?\Closure $onShutdown = null;
+    private \Closure|null $onShutdown = null;
 
     public function __construct(
         string $host,
@@ -96,9 +95,9 @@ class Server
         bool $useSyncWorker,
         private HttpFoundationFactoryInterface $symfonyRequestFactory,
         private HttpMessageFactoryInterface $psrFactory,
-        ?TaskHandlerInterface $taskHandler = null,
-        ?TaskFinishHandlerInterface $taskFinishHandler = null,
-        private ?EventDispatcherInterface $eventDispatcher = null,
+        TaskHandlerInterface|null $taskHandler = null,
+        TaskFinishHandlerInterface|null $taskFinishHandler = null,
+        private EventDispatcherInterface|null $eventDispatcher = null,
     ) {
         $this->host = $host;
         $this->port = $port;
@@ -161,7 +160,7 @@ class Server
      */
     public function start(
         callable $onStart,
-        ?callable $onShutdown = null,
+        callable|null $onShutdown = null,
     ): void {
         $this->createServer();
         $this->configureSwooleServer();
@@ -216,11 +215,7 @@ class Server
      */
     public function stopWorker(int $workerId = -1)
     {
-        if ($workerId > -1) {
-            return $this->server->stop($workerId);
-        }
-
-        return $this->server->stop();
+        return $this->server->stop($workerId);
     }
 
     private function getPid(): int
@@ -267,7 +262,7 @@ class Server
      */
     private function createServer(): void
     {
-        $this->server = new \OpenSwoole\HTTP\Server($this->host, $this->port);
+        $this->server = new \OpenSwoole\Http\Server($this->host, $this->port);
     }
 
     /**
@@ -279,7 +274,7 @@ class Server
         Runtime::enableCoroutine($this->getOption('enable_coroutine'), $this->hookFlags);
     }
 
-    private function symfonyBridge(callable $onStart, ?callable $onShutdown = null): void
+    private function symfonyBridge(callable $onStart, callable|null $onShutdown = null): void
     {
         $onShutdown ??= $this->onShutdown;
 
@@ -288,7 +283,7 @@ class Server
         });
 
         if (null !== $this->taskHandler) {
-            $this->server->on('task', function (\OpenSwoole\HTTP\Server $server, Task $task) {
+            $this->server->on('task', function (\OpenSwoole\Http\Server $server, Task $task) {
                 $this->eventDispatcher?->dispatch(new ServerTaskStarted($task));
                 $this->taskHandler->handle($this->server, $task);
                 $this->eventDispatcher?->dispatch(new ServerTaskEnded($task));
@@ -298,7 +293,7 @@ class Server
         if (null !== $this->taskFinishHandler) {
             $this->server->on(
                 'finish',
-                fn (\OpenSwoole\HTTP\Server $server, int $taskId, mixed $data) => $this->taskFinishHandler->handle($this->server, $taskId, $data),
+                fn (\OpenSwoole\Http\Server $server, int $taskId, mixed $data) => $this->taskFinishHandler->handle($this->server, $taskId, $data),
             );
         }
 
@@ -307,12 +302,12 @@ class Server
         }
 
         if ($this->useSyncWorker && CoroutineHelper::inCoroutine()) {
-            $this->server->on('WorkerStart', function (\OpenSwoole\HTTP\Server $server, int $workerId) {
+            $this->server->on('WorkerStart', function (\OpenSwoole\Http\Server $server, int $workerId) {
                 $this->needSyncWorker() && $this->workerMutexPool?->create($workerId);
             });
         }
 
-        $this->server->on('request', function (\OpenSwoole\HTTP\Request $request, \OpenSwoole\HTTP\Response $response) {
+        $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
                 : null;
@@ -321,6 +316,8 @@ class Server
             $serverRequest = ServerRequest::from($request);
             $sfRequest = $this->symfonyRequestFactory->createRequest($serverRequest);
 
+            $content = '';
+
             try {
                 $sfResponse = $this->kernel->handle($sfRequest);
 
@@ -328,6 +325,11 @@ class Server
 
                 OpenSwooleResponse::emit($response, $psrResponse);
             } catch (\Throwable $throwable) {
+                $content = json_encode([
+                    'code' => SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR,
+                    'message' => $throwable->getMessage(),
+                ]);
+
                 $this->logger->error($throwable->getMessage(), [
                     'class' => $throwable::class,
                     'file' => $throwable->getFile(),
@@ -336,13 +338,14 @@ class Server
                 ]);
 
                 if ($response->isWritable()) {
-                    $response->end(json_encode([
-                        'code' => SymfonyResponseCode::HTTP_INTERNAL_SERVER_ERROR,
-                        'message' => $throwable->getMessage(),
-                    ]));
-                    $response->status(SymfonyResponseCode::HTTP_INTERNAL_SERVER_ERROR);
+                    $response->end($content);
+                    $response->status(SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
                 }
             } finally {
+                if (!isset($sfResponse)) {
+                    $sfResponse = new SymfonyResponse($content, SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
+                }
+
                 if ($this->kernel instanceof TerminableInterface) {
                     $this->kernel->terminate($sfRequest, $sfResponse);
                 }
@@ -372,9 +375,9 @@ class Server
         return is_array($this->server->getClientList()) ? count($this->server->getClientList()) : 0;
     }
 
-    public function task(mixed $data, int $dstWorkerId = -1, ?callable $finishCallback = null): ?int
+    public function task(mixed $data, int $dstWorkerId = -1, callable|null $finishCallback = null): int|null
     {
-        if (!isset($this->server) || !$this->isRunning()) {
+        if (!$this->isRunning()) {
             return null;
         }
 

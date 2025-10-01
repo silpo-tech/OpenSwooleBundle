@@ -6,6 +6,7 @@ namespace OpenSwooleBundle\Tests\TestCase\EventSubscriber;
 
 use OpenSwooleBundle\EventSubscriber\SentryPublisherSubscriber;
 use OpenSwooleBundle\Tests\Kernel;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sentry\ClientInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ final class SentryPublisherSubscriberTest extends TestCase
 {
     public function testFlush(): void
     {
+        /** @var ClientInterface&MockObject */
         $client = $this->createMock(ClientInterface::class);
         $client->expects(self::once())->method('flush');
 
@@ -27,6 +29,6 @@ final class SentryPublisherSubscriberTest extends TestCase
             new Response(),
         );
 
-        $subscriber->flush($event);
+        $subscriber->flush();
     }
 }

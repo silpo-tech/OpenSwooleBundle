@@ -34,6 +34,6 @@ final class ContainerSubscriberTest extends TestCase
 
         $subscriber = new ContainerSubscriber($services);
 
-        $subscriber->clear($event);
+        $subscriber->clear();
     }
 }

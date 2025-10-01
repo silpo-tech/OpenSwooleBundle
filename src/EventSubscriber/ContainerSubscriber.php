@@ -11,13 +11,15 @@ use Symfony\Contracts\Service\ResetInterface;
 class ContainerSubscriber implements EventSubscriberInterface
 {
     /**
-     * @var array|iterable|ResetInterface[]
+     * @var ResetInterface[]
      */
     private array $services;
 
     public function __construct(iterable $services)
     {
-        $this->services = $services instanceof \Traversable ? iterator_to_array($services) : $services;
+        $services = $services instanceof \Traversable ? iterator_to_array($services) : $services;
+
+        $this->services = array_filter($services, static fn ($service) => $service instanceof ResetInterface);
     }
 
     /**
@@ -35,9 +37,7 @@ class ContainerSubscriber implements EventSubscriberInterface
     public function clear(): void
     {
         foreach ($this->services as $service) {
-            if ($service instanceof ResetInterface) {
-                $service->reset();
-            }
+            $service->reset();
         }
     }
 }
