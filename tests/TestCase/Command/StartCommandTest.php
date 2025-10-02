@@ -46,7 +46,7 @@ final class StartCommandTest extends TestCase
 
         $process = new Process(
             static function () use ($server) {
-                usleep(100000);
+                usleep(10000);
                 $server->stop();
             },
         );
@@ -126,7 +126,7 @@ final class StartCommandTest extends TestCase
         $processStop = new Process(
             static function () use ($server, $serverReady) {
                 $serverReady->wait();
-                usleep(100000);
+                usleep(10000);
                 $server->stop();
             },
         );
@@ -147,7 +147,7 @@ final class StartCommandTest extends TestCase
         $result = $command->run($input, $output);
 
         self::assertSame(0, $result);
-        self::assertStringContainsString('Server is running! Please before stop the server.', $output->fetch());
+        self::assertStringContainsString('Server is running! Please stop the server before starting.', $output->fetch());
 
         $serverExit->wait();
     }
