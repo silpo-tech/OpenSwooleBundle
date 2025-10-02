@@ -6,11 +6,9 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN apt-get update \
     && apt-get install -y --no-install-recommends procps libzip-dev libssl-dev \
     && chmod +x /usr/local/bin/install-php-extensions && sync \
-    && install-php-extensions pcntl zip sockets \
+    && install-php-extensions pcntl zip sockets pcov openswoole \
     # cleanup
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN sync && install-php-extensions openswoole
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 
