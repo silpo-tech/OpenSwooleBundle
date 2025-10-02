@@ -67,8 +67,8 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./reports/coverage/clover.xml
-        flags: php
-        name: phpunit
+        flags: php-${{ matrix['php-version'] }}
+        name: phpunit-${{ matrix['php-version'] }}
         fail_ci_if_error: true
         verbose: true
         use_oidc: true
@@ -84,16 +84,16 @@ jobs:
     - name: Download Docker image
       uses: actions/download-artifact@v4
       with:
-        name: openswoole-bundle-image
+        name: openswoole-bundle-image-8.3
 
     - name: Load Docker image
-      run: docker load < openswoole-bundle.tar.gz
+      run: docker load < openswoole-bundle-8.3.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHPStan
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest bin/phpstan analyse --error-format=github --memory-limit=-1
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/phpstan analyse --error-format=github --memory-limit=-1
 
   code-style:
     runs-on: ubuntu-latest
@@ -106,13 +106,13 @@ jobs:
     - name: Download Docker image
       uses: actions/download-artifact@v4
       with:
-        name: openswoole-bundle-image
+        name: openswoole-bundle-image-8.3
 
     - name: Load Docker image
-      run: docker load < openswoole-bundle.tar.gz
+      run: docker load < openswoole-bundle-8.3.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHP CS Fixer
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:latest bin/php-cs-fixer fix --dry-run --diff --verbose
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/php-cs-fixer fix --dry-run --diff --verbose
