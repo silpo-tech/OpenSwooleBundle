@@ -1,3 +1,10 @@
+# OpenSwoole Bundle for Symfony Framework #
+
+[![CI](https://github.com/silpo-tech/OpenSwooleBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/silpo-tech/OpenSwooleBundle/actions)
+[![codecov](https://codecov.io/gh/silpo-tech/OpenSwooleBundle/graph/badge.svg)](https://codecov.io/gh/silpo-tech/OpenSwooleBundle)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 Installation
 ============
 
@@ -63,17 +70,4 @@ options:
     ssl_cert_file: ~
     ssl_key_file: ~
     package_max_length: ~
-```
-### Tests
-To run the test suite, you need to install the dependencies and run the test suite:
-
-```bash
-composer install --ignore-platform-reqs
-
-docker pull fozzyua/docker-php-openswoole-base-image:latest
-```
-Run the test suite:
-
-```bash
-docker run --rm -v ./:/var/www/project/ --workdir /var/www/project/ --entrypoint composer  fozzyua/docker-php-openswoole-base-image:latest test:run
 ```
