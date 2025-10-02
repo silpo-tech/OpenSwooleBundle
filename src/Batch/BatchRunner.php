@@ -35,7 +35,7 @@ final class BatchRunner
         private array $callables,
         private int $hookFlags = Runtime::HOOK_ALL,
         private bool $setRuntimeHooks = true,
-        private ?EventDispatcherInterface $eventDispatcher = null,
+        private EventDispatcherInterface|null $eventDispatcher = null,
     ) {
         $this->callablesCount = count($callables);
         $this->prevHookFlags = Runtime::getHookFlags();

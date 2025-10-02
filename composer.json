@@ -53,7 +53,7 @@
       "php -d extension=pcov.so -d pcov.enabled=1 bin/phpunit --coverage-text --coverage-html ./reports/coverage --colors=never --coverage-cobertura=./reports/coverage/cobertura.xml --coverage-clover=./reports/coverage/clover.xml --log-junit=./reports/coverage/junit.xml"
     ],
     "test:run": [
-      "php bin/phpunit --debug"
+      "php bin/phpunit"
     ],
     "test:debug": {
       "command": "debug bin/phpunit --color=always"

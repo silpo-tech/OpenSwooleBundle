@@ -85,7 +85,7 @@ final class LoggerMutexDecorator implements HandlerInterface, ProcessableHandler
         return $this->handler->getFormatter();
     }
 
-    private function getMutex(): ?MutexInterface
+    private function getMutex(): MutexInterface|null
     {
         if (!CoroutineHelper::inCoroutine()) {
             return null;

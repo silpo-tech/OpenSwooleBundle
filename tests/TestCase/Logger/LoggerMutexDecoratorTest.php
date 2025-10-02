@@ -16,9 +16,14 @@ final class LoggerMutexDecoratorTest extends TestCase
 {
     public const TEST_LOG_FILE = 'test.log';
 
+    protected function setUp(): void
+    {
+        @unlink(self::TEST_LOG_FILE);
+    }
+
     protected function tearDown(): void
     {
-        unlink(self::TEST_LOG_FILE);
+        @unlink(self::TEST_LOG_FILE);
     }
 
     public function testWithoutCoroutine(): void
@@ -69,7 +74,7 @@ final class LoggerMutexDecoratorTest extends TestCase
     {
         return new Logger('test', [
             new LoggerMutexDecorator(
-                (new StreamHandler(self::TEST_LOG_FILE))->setFormatter(new LineFormatter('%message%'.PHP_EOL)),
+                (new StreamHandler(self::TEST_LOG_FILE))->setFormatter(new LineFormatter('%message%' . PHP_EOL)), // @phpstan-ignore-line
             ),
         ]);
     }

@@ -144,7 +144,7 @@ final class OpenSwooleExtensionTest extends TestCase
         $extension->load($config, $containerBuilder);
 
         foreach ($expected['services'] as $service) {
-            $this->assertTrue($containerBuilder->hasDefinition($service), 'Service "'.$service.'" not found');
+            $this->assertTrue($containerBuilder->hasDefinition($service), 'Service "' . $service . '" not found');
 
             if (isset($assertServices[$service])) {
                 $assertServices[$service]($containerBuilder->getDefinition($service));

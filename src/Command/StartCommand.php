@@ -40,7 +40,7 @@ class StartCommand extends ServerCommand
 
         try {
             if ($this->server->isRunning()) {
-                $style->warning('Server is running! Please before stop the server.');
+                $style->warning('Server is running! Please stop the server before starting.');
             } else {
                 $host = $input->getOption('host');
                 if ($host) {

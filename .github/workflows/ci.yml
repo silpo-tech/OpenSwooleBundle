@@ -2,19 +2,38 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.3', '8.4']
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and save Docker image
+      run: |
+        docker build --build-arg PHP_VERSION=${{ matrix.php-version }} -t openswoole-bundle:${{ matrix.php-version }} .
+        docker save openswoole-bundle:${{ matrix.php-version }} | gzip > openswoole-bundle-${{ matrix.php-version }}.tar.gz
+    - name: Upload Docker image
+      uses: actions/upload-artifact@v4
+      with:
+        name: openswoole-bundle-image-${{ matrix.php-version }}
+        path: openswoole-bundle-${{ matrix.php-version }}.tar.gz
+        retention-days: 1
+
   test:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         php-version: ['8.2', '8.3', '8.4']
         dependency-version: [prefer-lowest, prefer-stable]
 
-    name: PHP ${{ matrix.php-version }} - ${{ matrix.dependency-version }}
+    name: Test PHP ${{ matrix.php-version }} - ${{ matrix.dependency-version }}
 
     permissions:
       contents: read
@@ -25,34 +44,26 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
       with:
-        php-version: ${{ matrix.php-version }}
-        extensions: json, mbstring, xml, pcov, openswoole, pcntl
-        coverage: pcov
+        name: openswoole-bundle-image-${{ matrix.php-version }}
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v4
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-${{ matrix.php-version }}-
+    - name: Load Docker image
+      run: docker load < openswoole-bundle-${{ matrix.php-version }}.tar.gz
 
     - name: Install dependencies
-      run: composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-req=ext-openswoole
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run test suite
-      run: composer test:run
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:run
 
     - name: Run tests with coverage
-      if: matrix.php-version == '8.3' && matrix.dependency-version == 'prefer-stable'
-      run: composer test:coverage
+      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3'
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:coverage
 
     - name: Upload coverage reports to Codecov
-      if: matrix.php-version == '8.3' && matrix.dependency-version == 'prefer-stable'
+      if: matrix.dependency-version == 'prefer-stable'
       uses: codecov/codecov-action@v4
       with:
         file: ./reports/coverage/clover.xml
@@ -64,58 +75,44 @@ jobs:
 
   static-analysis:
     runs-on: ubuntu-latest
+    needs: build
     name: Static Analysis
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
       with:
-        php-version: '8.3'
-        extensions: json, mbstring, xml, openswoole, pcntl
-        tools: phpstan
+        name: openswoole-bundle-image-8.3
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-8.3-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-8.3-
+    - name: Load Docker image
+      run: docker load < openswoole-bundle-8.3.tar.gz
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHPStan
-      run: bin/phpstan analyse --error-format=github
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/phpstan analyse --error-format=github --memory-limit=-1
 
   code-style:
     runs-on: ubuntu-latest
+    needs: build
     name: Code Style
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+    - name: Download Docker image
+      uses: actions/download-artifact@v4
       with:
-        php-version: '8.3'
-        extensions: json, mbstring, xml, openswoole, pcntl
-        tools: php-cs-fixer
+        name: openswoole-bundle-image-8.3
 
-    - name: Cache Composer packages
-      id: composer-cache
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-8.3-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-8.3-
+    - name: Load Docker image
+      run: docker load < openswoole-bundle-8.3.tar.gz
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHP CS Fixer
-      run: bin/php-cs-fixer fix --dry-run --diff --verbose
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/php-cs-fixer fix --dry-run --diff --verbose

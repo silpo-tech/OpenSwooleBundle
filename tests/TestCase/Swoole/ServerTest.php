@@ -21,6 +21,7 @@ use OpenSwooleBundle\Tests\Messenger\TestMessage;
 use OpenSwooleBundle\Tests\Messenger\TestMessageHandler;
 use OpenSwooleBundle\Tests\Stub\ContainerStub;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface as ContainerContainerInterface;
 use Psr\Log\LoggerInterface;
@@ -47,8 +48,16 @@ final class ServerTest extends TestCase
     protected function tearDown(): void
     {
         @unlink(self::TEST_LOG_FILE);
+        parent::tearDown();
     }
 
+    /**
+     * We need #[WithoutErrorHandler] because when using separate processes, if any deprecation occurs
+     * during execution of the other process, PHPUnit will fail with an error
+     * (Uncaught PHPUnit\Event\Code\NoTestCaseObjectOnCallStackException: Cannot find TestCase object on call stack).
+     * This attribute disables PHPUnit's error handler to prevent this cross-process error handling issue.
+     */
+    #[WithoutErrorHandler]
     #[DataProvider('dataProviderEnableCoroutine')]
     public function testEnableCoroutine(bool $useSyncServer, string|callable $expectedLogContent): void
     {
@@ -65,24 +74,23 @@ final class ServerTest extends TestCase
         $kernel = new Kernel(
             static function (Request $request, int $type = HttpKernelInterface::MAIN_REQUEST, bool $catch = true) use ($logger): Response {
                 $currentReqNum = $request->query->get('req');
-
                 $data = BatchRunner::fromCallables([
                     static function () use ($currentReqNum, $logger) {
-                        usleep(100000 - $currentReqNum * 10000);
+                        usleep(1000000 - $currentReqNum * 100000);
 
                         $logger->debug(sprintf('callable #1 of #%d request', $currentReqNum));
 
                         return sprintf('callable #1 of #%d request', $currentReqNum);
                     },
                     static function () use ($currentReqNum, $logger) {
-                        usleep(50000 - $currentReqNum * 10000);
+                        usleep(500000 - $currentReqNum * 100000);
 
                         $logger->debug(sprintf('callable #2 of #%d request', $currentReqNum));
 
                         return sprintf('callable #2 of #%d request', $currentReqNum);
                     },
                 ])
-                    ->withHookFlags(Runtime::HOOK_SLEEP)
+                    ->withHookFlags(Runtime::HOOK_ALL)
                     ->runAll()
                 ;
 
@@ -114,7 +122,7 @@ final class ServerTest extends TestCase
             function () use ($serverReady, $table, $server, $serverExit, $requestExit) {
                 $serverReady->wait();
 
-                $data = BatchRunner::fromCallables([
+                [$data, $throwables] = BatchRunner::fromCallables([
                     function () {
                         $data = $this->makeRequest(1);
 
@@ -130,9 +138,10 @@ final class ServerTest extends TestCase
 
                         return json_decode($data, true);
                     },
-                ])->runAll();
+                ])->runAny();
 
                 $table->set('output', ['output' => json_encode($data)]);
+                $table->set('throwables', ['output' => json_encode($throwables)]);
 
                 $server->stop();
 
@@ -140,6 +149,7 @@ final class ServerTest extends TestCase
 
                 $requestExit->wakeup();
             },
+            true,
         );
 
         $process->start();
@@ -154,6 +164,9 @@ final class ServerTest extends TestCase
         );
 
         $requestExit->wait();
+
+        $throwables = json_decode($table->get('throwables', 'output'), true);
+        self::assertEmpty($throwables);
 
         $data = json_decode($table->get('output')['output'], true);
 
@@ -213,6 +226,13 @@ final class ServerTest extends TestCase
         ];
     }
 
+    /**
+     * We need #[WithoutErrorHandler] because when using separate processes, if any deprecation occurs
+     * during execution of the other process, PHPUnit will fail with an error
+     * (Uncaught PHPUnit\Event\Code\NoTestCaseObjectOnCallStackException: Cannot find TestCase object on call stack).
+     * This attribute disables PHPUnit's error handler to prevent this cross-process error handling issue.
+     */
+    #[WithoutErrorHandler]
     public function testTaskWorker(): void
     {
         $serverReady = new Atomic(0);
@@ -355,8 +375,6 @@ final class ServerTest extends TestCase
             new NoopTaskFinishHandler(),
         );
 
-        file_put_contents('/tmp/openswoole_server.pid', 12345);
-
         $container->set(OpenSwooleTaskTransport::class, new OpenSwooleTaskTransport($server, $bus));
 
         $bus->dispatch(new TestMessage('hello world'));
@@ -376,14 +394,14 @@ final class ServerTest extends TestCase
     {
         $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8889?req='.$numReq);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, 'http://localhost:8889?req=' . $numReq . '&time=' . microtime(true));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_HEADER, false);
 
         $output = curl_exec($ch);
         if (false === $output) {
-            throw new \RuntimeException('CURL Error:'.curl_error($ch));
+            throw new \RuntimeException('CURL Error:' . curl_error($ch));
         }
 
         curl_close($ch);
@@ -394,7 +412,7 @@ final class ServerTest extends TestCase
     private static function createLogger(): LoggerInterface
     {
         $handler = new StreamHandler(self::TEST_LOG_FILE, LogLevel::DEBUG);
-        $handler->setFormatter(new LineFormatter('%message%'.PHP_EOL));
+        $handler->setFormatter(new LineFormatter('%message%' . PHP_EOL));
         $logger = new Logger(
             'test',
             [
