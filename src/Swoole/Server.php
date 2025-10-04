@@ -9,12 +9,9 @@ use OpenSwoole\Core\Psr\ServerRequest;
 use OpenSwoole\Process;
 use OpenSwoole\Runtime;
 use OpenSwoole\Server\Task;
-use OpenSwooleBundle\Event\Server\ServerTaskEnded;
-use OpenSwooleBundle\Event\Server\ServerTaskStarted;
 use OpenSwooleBundle\Exception\OpenSwooleException;
 use OpenSwooleBundle\Swoole\Handler\TaskFinishHandlerInterface;
 use OpenSwooleBundle\Swoole\Handler\TaskHandlerInterface;
-use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
@@ -97,7 +94,6 @@ class Server
         private HttpMessageFactoryInterface $psrFactory,
         TaskHandlerInterface|null $taskHandler = null,
         TaskFinishHandlerInterface|null $taskFinishHandler = null,
-        private EventDispatcherInterface|null $eventDispatcher = null,
     ) {
         $this->host = $host;
         $this->port = $port;
@@ -284,9 +280,7 @@ class Server
 
         if (null !== $this->taskHandler) {
             $this->server->on('task', function (\OpenSwoole\Http\Server $server, Task $task) {
-                $this->eventDispatcher?->dispatch(new ServerTaskStarted($task));
                 $this->taskHandler->handle($this->server, $task);
-                $this->eventDispatcher?->dispatch(new ServerTaskEnded($task));
             });
         }
 

@@ -9,6 +9,9 @@ use Monolog\Logger;
 use Monolog\Processor\PsrLogMessageProcessor;
 use OpenSwoole\Server;
 use OpenSwoole\Server\Task;
+use OpenSwooleBundle\Event\Server\ServerTaskEnded;
+use OpenSwooleBundle\Event\Server\ServerTaskStarted;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -18,6 +21,7 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
 
     public function __construct(
         private MessageBusInterface $messenger,
+        private EventDispatcherInterface|null $eventDispatcher = null,
         LoggerInterface|null $logger = null,
     ) {
         $this->logger = $logger ?? self::createPlainLogger();
@@ -25,6 +29,7 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
 
     public function handle(Server $server, Task $task): void
     {
+        $this->eventDispatcher?->dispatch(new ServerTaskStarted($task));
         try {
             $this->messenger->dispatch($task->data);
         } catch (\Throwable $e) {
@@ -36,6 +41,8 @@ final class MessengerSendTaskHandler implements TaskHandlerInterface
                     $e->getTraceAsString(),
                 ),
             );
+        } finally {
+            $this->eventDispatcher?->dispatch(new ServerTaskEnded($task));
         }
     }
 
