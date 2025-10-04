@@ -43,7 +43,7 @@ final class MessengerSendTaskHandlerTest extends TestCase
         $task = new Task();
         $task->data = (new Envelope(new TestMessage('test')))->with(new ReceivedStamp('test'));
 
-        $handler = new MessengerSendTaskHandler($bus, new NullLogger());
+        $handler = new MessengerSendTaskHandler($bus, null, new NullLogger());
         $handler->handle($server, $task);
 
         self::assertCount(1, $bus->getDispatchedMessages());
