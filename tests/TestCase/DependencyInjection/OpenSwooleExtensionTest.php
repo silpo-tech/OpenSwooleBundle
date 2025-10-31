@@ -58,7 +58,7 @@ final class OpenSwooleExtensionTest extends TestCase
                         'open_http2_protocol' => false,
                         'dispatch_mode' => 2,
                         'worker_num' => 4,
-                        'task_worker_num' => 0,
+                        'task_worker_num' => 1,
                         'task_use_object' => true,
                         'task_enable_coroutine' => false,
                         'reactor_num' => 8,
@@ -71,8 +71,8 @@ final class OpenSwooleExtensionTest extends TestCase
                     self::assertTrue($definition->getArgument(6));
                     self::assertReferenceIs('openswoole_bundle.server.symfony_request_factory', $definition->getArgument(7));
                     self::assertReferenceIs('openswoole_bundle.server.psr_factory', $definition->getArgument(8));
-                    self::assertNull($definition->getArgument(9));
-                    self::assertNull($definition->getArgument(10));
+                    self::assertReferenceIs(TaskHandlerInterface::class, $definition->getArgument(9));
+                    self::assertReferenceIs(TaskFinishHandlerInterface::class, $definition->getArgument(10));
                 },
             ],
         ];
@@ -80,7 +80,7 @@ final class OpenSwooleExtensionTest extends TestCase
         yield 'with open_swoole_server.use_server_task_messenger' => [
             'config' => [
                 'open_swoole_server' => [
-                    'use_server_task_messenger' => true,
+                    'use_server_task_messenger' => false,
                     'options' => [
                         'pid_file' => 'open_swoole_server.pid',
                     ],
@@ -116,7 +116,7 @@ final class OpenSwooleExtensionTest extends TestCase
                         'open_http2_protocol' => false,
                         'dispatch_mode' => 2,
                         'worker_num' => 4,
-                        'task_worker_num' => 0,
+                        'task_worker_num' => 1,
                         'task_use_object' => true,
                         'task_enable_coroutine' => false,
                         'reactor_num' => 8,
@@ -129,8 +129,8 @@ final class OpenSwooleExtensionTest extends TestCase
                     self::assertTrue($definition->getArgument(6));
                     self::assertReferenceIs('openswoole_bundle.server.symfony_request_factory', $definition->getArgument(7));
                     self::assertReferenceIs('openswoole_bundle.server.psr_factory', $definition->getArgument(8));
-                    self::assertReferenceIs(TaskHandlerInterface::class, $definition->getArgument(9));
-                    self::assertReferenceIs(TaskFinishHandlerInterface::class, $definition->getArgument(10));
+                    self::assertNull($definition->getArgument(9));
+                    self::assertNull($definition->getArgument(10));
                 },
             ],
         ];
