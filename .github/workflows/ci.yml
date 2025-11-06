@@ -63,7 +63,7 @@ jobs:
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:coverage
 
     - name: Upload coverage reports to Codecov
-      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3'
+      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3' && github.ref == 'refs/heads/main'
       uses: codecov/codecov-action@v4
       with:
         file: ./reports/coverage/clover.xml
