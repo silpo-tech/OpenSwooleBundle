@@ -359,10 +359,9 @@ class Server
             }
         });
 
-        // Instrument Blackfire profiler only when the extension and Swoole alias are available to avoid overhead and type mismatches
-        if (\extension_loaded('blackfire') && \class_exists(Profiler::class) && \class_exists(\Swoole\Http\Server::class) && $this->server instanceof \Swoole\Http\Server) {
+        // Instrument Blackfire profiler only when the extension is available to avoid overhead and type mismatches
+        if (\extension_loaded('blackfire') && \class_exists(Profiler::class)) {
             $profiler = new Profiler();
-            /** @var \Swoole\Http\Server $swooleServer */
             $swooleServer = $this->server;
             $profiler->instrument($swooleServer);
         }
