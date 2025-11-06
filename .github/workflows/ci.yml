@@ -72,6 +72,7 @@ jobs:
         fail_ci_if_error: true
         verbose: true
         use_oidc: true
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   static-analysis:
     runs-on: ubuntu-latest
