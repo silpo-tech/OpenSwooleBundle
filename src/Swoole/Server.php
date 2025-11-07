@@ -54,7 +54,7 @@ class Server
     private $useSyncWorker;
 
     /**
-     * @var \OpenSwoole\Http\Server
+     * @var \OpenSwoole\Http\Server|null
      */
     private $server;
 
@@ -377,11 +377,7 @@ class Server
 
     public function task(mixed $data, int $dstWorkerId = -1, callable|null $finishCallback = null): int|null
     {
-        if (!$this->isRunning()) {
-            return null;
-        }
-
-        if ($this->server->taskworker) {
+        if (!isset($this->server) || $this->server->taskworker || !$this->isRunning()) {
             return null;
         }
 
