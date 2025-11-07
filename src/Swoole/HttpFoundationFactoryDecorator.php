@@ -23,12 +23,24 @@ final readonly class HttpFoundationFactoryDecorator implements HttpFoundationFac
 
         $serverParams = $psrRequest->getServerParams();
 
+        // Use static caches to avoid resetting globals on every request
+        static $lastTrustedProxies = null;
+        static $lastTrustedHosts = null;
+
         if ($trustedProxies = $serverParams['TRUSTED_PROXIES'] ?? false) {
-            $request::setTrustedProxies(explode(',', $trustedProxies), Request::HEADER_X_FORWARDED_AWS_ELB);
+            $proxies = explode(',', $trustedProxies);
+            if ($lastTrustedProxies !== $trustedProxies) {
+                $request::setTrustedProxies($proxies, Request::HEADER_X_FORWARDED_AWS_ELB);
+                $lastTrustedProxies = $trustedProxies;
+            }
         }
 
         if ($trustedHosts = $serverParams['TRUSTED_HOSTS'] ?? false) {
-            $request::setTrustedHosts(explode(',', $trustedHosts));
+            $hosts = explode(',', $trustedHosts);
+            if ($lastTrustedHosts !== $trustedHosts) {
+                $request::setTrustedHosts($hosts);
+                $lastTrustedHosts = $trustedHosts;
+            }
         }
 
         return $request;

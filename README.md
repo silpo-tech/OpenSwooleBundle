@@ -48,6 +48,7 @@ options:
     document_root: %kernel.project_dir%/public
     enable_static_handler: false
     open_http2_protocol: false
+    open_tcp_nodelay: false  # Disables Nagle's algorithm; set to true to reduce latency for small packets
 ```
 
 ### Other Configs

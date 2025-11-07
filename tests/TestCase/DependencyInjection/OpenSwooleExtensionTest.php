@@ -64,6 +64,7 @@ final class OpenSwooleExtensionTest extends TestCase
                         'reactor_num' => 8,
                         'buffer_output_size' => 8388608,
                         'package_max_length' => 2097152,
+                        'open_tcp_nodelay' => false,
                     ], $definition->getArgument(2));
                     self::assertSame(0, $definition->getArgument(3));
                     self::assertReferenceIs('kernel', $definition->getArgument(4));
@@ -122,6 +123,7 @@ final class OpenSwooleExtensionTest extends TestCase
                         'reactor_num' => 8,
                         'buffer_output_size' => 8388608,
                         'package_max_length' => 2097152,
+                        'open_tcp_nodelay' => false,
                     ], $definition->getArgument(2));
                     self::assertSame(0, $definition->getArgument(3));
                     self::assertReferenceIs('kernel', $definition->getArgument(4));

@@ -85,6 +85,11 @@ class Server
 
     private \Closure|null $onShutdown = null;
 
+    /**
+     * SIGUSR1 signal number; defined here to avoid a hard dependency on ext-pcntl.
+     */
+    private const SIGUSR1 = 10;
+
     public function __construct(
         string $host,
         int $port,
@@ -190,7 +195,7 @@ class Server
      */
     public function reload(): bool
     {
-        $reload = Process::kill($this->getPid(), SIGUSR1);
+        $reload = Process::kill($this->getPid(), self::SIGUSR1);
 
         if (!$reload) {
             throw new OpenSwooleException('Swoole server not reloaded!');
@@ -338,8 +343,8 @@ class Server
                 ]);
 
                 if ($response->isWritable()) {
-                    $response->end($content);
                     $response->status(SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR);
+                    $response->end($content);
                 }
             } finally {
                 if (!isset($sfResponse)) {
@@ -354,8 +359,12 @@ class Server
             }
         });
 
-        $profiler = new Profiler();
-        $profiler->instrument($this->server);
+        // Instrument Blackfire profiler only when the extension is available to avoid overhead and type mismatches
+        if (\extension_loaded('blackfire') && \class_exists(Profiler::class)) {
+            $profiler = new Profiler();
+            $swooleServer = $this->server;
+            $profiler->instrument($swooleServer);
+        }
 
         $this->server->start();
     }
@@ -372,7 +381,9 @@ class Server
 
     public function getActiveClientsCount(): int
     {
-        return is_array($this->server->getClientList()) ? count($this->server->getClientList()) : 0;
+        $stats = $this->server->stats();
+
+        return isset($stats['connection_num']) ? (int) $stats['connection_num'] : 0;
     }
 
     public function task(mixed $data, int $dstWorkerId = -1, callable|null $finishCallback = null): int|null
