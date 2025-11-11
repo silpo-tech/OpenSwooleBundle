@@ -313,6 +313,9 @@ class Server
         }
 
         $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
+            $reqTime = microtime(true);
+            $info = $this->server->getClientInfo($request->fd);
+
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
                 : null;
@@ -329,6 +332,18 @@ class Server
                     )
                 );
             }
+
+            $handleStartTime = microtime(true);
+            $reqLifecycleMetrics = [
+                'connect_time' => $info['connect_time'],
+                'last_time' => $info['last_time'],
+                'last_recv_time' => $info['last_recv_time'],
+                'last_dispatch_time' => $info['last_dispatch_time'],
+                'req_time' => $reqTime,
+                'handle_start_time' => $handleStartTime,
+                'worker_id' => $this->server->getWorkerId(),
+            ];
+            $sfRequest->attributes->set('_req_lifecycle_metrics', $reqLifecycleMetrics);
 
             $content = '';
 
