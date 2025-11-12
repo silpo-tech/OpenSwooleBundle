@@ -328,8 +328,8 @@ class Server
                     'REQUEST_TIME_FLOAT',
                     $sfRequest->server->get(
                         'request_time_float',
-                        microtime(true)
-                    )
+                        $info['last_recv_time'],
+                    ),
                 );
             }
 
