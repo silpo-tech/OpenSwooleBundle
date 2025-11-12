@@ -354,9 +354,9 @@ class Server
             try {
                 $sfResponse = $this->kernel->handle($sfRequest);
 
-                $psrResponse = $this->psrFactory->createResponse($sfResponse);
-
                 $sfRequest->attributes->set('_req_openswoole_handle_stop_time', microtime(true)); // 4
+
+                $psrResponse = $this->psrFactory->createResponse($sfResponse);
 
                 OpenSwooleResponse::emit($response, $psrResponse);
 
