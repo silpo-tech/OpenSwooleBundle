@@ -313,8 +313,9 @@ class Server
         }
 
         $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
-            $reqTime = microtime(true);
             $info = $this->server->getClientInfo($request->fd);
+            $receiveTime = $info['last_recv_time']; // 1
+            $reqTime = microtime(true); // 2
 
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
@@ -333,15 +334,18 @@ class Server
                 );
             }
 
-            $handleStartTime = microtime(true);
+            $handleStartTime = microtime(true); // 3
+
+            $sfRequest->attributes->set('_req_openswoole_receive_time', $receiveTime);
+            $sfRequest->attributes->set('_req_openswoole_request_time', $reqTime);
+            $sfRequest->attributes->set('_req_openswoole_handle_start_time', $handleStartTime);
+
             $reqLifecycleMetrics = [
-                'connect_time' => $info['connect_time'],
-                'last_time' => $info['last_time'],
-                'last_recv_time' => $info['last_recv_time'],
-                'last_dispatch_time' => $info['last_dispatch_time'],
+                'last_recv_time' => $receiveTime,
                 'req_time' => $reqTime,
                 'handle_start_time' => $handleStartTime,
                 'worker_id' => $this->server->getWorkerId(),
+                'info' => $info,
             ];
             $sfRequest->attributes->set('_req_lifecycle_metrics', $reqLifecycleMetrics);
 
@@ -352,9 +356,11 @@ class Server
 
                 $psrResponse = $this->psrFactory->createResponse($sfResponse);
 
+                $sfRequest->attributes->set('_req_openswoole_handle_stop_time', microtime(true)); // 4
+
                 OpenSwooleResponse::emit($response, $psrResponse);
 
-                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true));
+                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true)); // 5
             } catch (\Throwable $throwable) {
                 $content = json_encode([
                     'code' => SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR,
@@ -380,6 +386,8 @@ class Server
                 if ($this->kernel instanceof TerminableInterface) {
                     $this->kernel->terminate($sfRequest, $sfResponse);
                 }
+
+                $sfRequest->attributes->set('_req_openswoole_terminate_time', microtime(true)); // 6
 
                 $mutex?->unlock();
             }
