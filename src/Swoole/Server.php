@@ -320,6 +320,15 @@ class Server
 
             $serverRequest = ServerRequest::from($request);
             $sfRequest = $this->symfonyRequestFactory->createRequest($serverRequest);
+            if (!$sfRequest->server->has('REQUEST_TIME_FLOAT')) {
+                $sfRequest->server->set(
+                    'REQUEST_TIME_FLOAT',
+                    $sfRequest->server->get(
+                        'request_time_float',
+                        microtime(true)
+                    )
+                );
+            }
 
             $content = '';
 
