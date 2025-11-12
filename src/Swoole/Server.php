@@ -353,6 +353,8 @@ class Server
                 $psrResponse = $this->psrFactory->createResponse($sfResponse);
 
                 OpenSwooleResponse::emit($response, $psrResponse);
+
+                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true));
             } catch (\Throwable $throwable) {
                 $content = json_encode([
                     'code' => SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR,
