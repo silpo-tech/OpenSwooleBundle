@@ -314,8 +314,8 @@ class Server
 
         $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
             $info = $this->server->getClientInfo($request->fd);
-            $receiveTime = $info['last_recv_time']; // 1
-            $reqTime = microtime(true); // 2
+            $receiveTime = $info['last_recv_time'];
+            $reqTime = microtime(true);
 
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
@@ -334,7 +334,7 @@ class Server
                 );
             }
 
-            $handleStartTime = microtime(true); // 3
+            $handleStartTime = microtime(true);
 
             $sfRequest->attributes->set('_req_openswoole_receive_time', $receiveTime);
             $sfRequest->attributes->set('_req_openswoole_request_time', $reqTime);
@@ -354,13 +354,13 @@ class Server
             try {
                 $sfResponse = $this->kernel->handle($sfRequest);
 
-                $sfRequest->attributes->set('_req_openswoole_handle_stop_time', microtime(true)); // 4
+                $sfRequest->attributes->set('_req_openswoole_handle_stop_time', microtime(true));
 
                 $psrResponse = $this->psrFactory->createResponse($sfResponse);
 
                 OpenSwooleResponse::emit($response, $psrResponse);
 
-                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true)); // 5
+                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true));
             } catch (\Throwable $throwable) {
                 $content = json_encode([
                     'code' => SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR,
@@ -386,8 +386,6 @@ class Server
                 if ($this->kernel instanceof TerminableInterface) {
                     $this->kernel->terminate($sfRequest, $sfResponse);
                 }
-
-                $sfRequest->attributes->set('_req_openswoole_terminate_time', microtime(true)); // 6
 
                 $mutex?->unlock();
             }
