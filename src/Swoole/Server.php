@@ -313,6 +313,10 @@ class Server
         }
 
         $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
+            $info = $this->server->getClientInfo($request->fd);
+            $receiveTime = $info['last_recv_time'] ?? microtime(true);
+            $reqTime = microtime(true);
+
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
                 : null;
@@ -325,19 +329,38 @@ class Server
                     'REQUEST_TIME_FLOAT',
                     $sfRequest->server->get(
                         'request_time_float',
-                        microtime(true)
-                    )
+                        $receiveTime,
+                    ),
                 );
             }
+
+            $handleStartTime = microtime(true);
+
+            $sfRequest->attributes->set('_req_openswoole_receive_time', $receiveTime);
+            $sfRequest->attributes->set('_req_openswoole_request_time', $reqTime);
+            $sfRequest->attributes->set('_req_openswoole_handle_start_time', $handleStartTime);
+
+            $reqLifecycleMetrics = [
+                'last_recv_time' => $receiveTime,
+                'req_time' => $reqTime,
+                'handle_start_time' => $handleStartTime,
+                'worker_id' => $this->server->getWorkerId(),
+                'info' => $info,
+            ];
+            $sfRequest->attributes->set('_req_lifecycle_metrics', $reqLifecycleMetrics);
 
             $content = '';
 
             try {
                 $sfResponse = $this->kernel->handle($sfRequest);
 
+                $sfRequest->attributes->set('_req_openswoole_handle_stop_time', microtime(true));
+
                 $psrResponse = $this->psrFactory->createResponse($sfResponse);
 
                 OpenSwooleResponse::emit($response, $psrResponse);
+
+                $sfRequest->attributes->set('_req_openswoole_emit_time', microtime(true));
             } catch (\Throwable $throwable) {
                 $content = json_encode([
                     'code' => SymfonyResponse::HTTP_INTERNAL_SERVER_ERROR,
