@@ -314,7 +314,7 @@ class Server
 
         $this->server->on('request', function (\OpenSwoole\Http\Request $request, \OpenSwoole\Http\Response $response) {
             $info = $this->server->getClientInfo($request->fd);
-            $receiveTime = $info['last_recv_time'];
+            $receiveTime = $info['last_recv_time'] ?? microtime(true);
             $reqTime = microtime(true);
 
             $mutex = $this->needSyncWorker()
@@ -329,7 +329,7 @@ class Server
                     'REQUEST_TIME_FLOAT',
                     $sfRequest->server->get(
                         'request_time_float',
-                        $info['last_recv_time'],
+                        $receiveTime,
                     ),
                 );
             }
