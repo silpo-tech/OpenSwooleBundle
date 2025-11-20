@@ -330,9 +330,9 @@ class Server
                 : null;
             
             if ($mutex) {
-                $this->perWorkerWaitingCounters[$workerId]?->add(1);
+                $this->perWorkerWaitingCounters[$workerId]->add(1);
                 $mutex->lock();
-                $this->perWorkerWaitingCounters[$workerId]?->sub(1);
+                $this->perWorkerWaitingCounters[$workerId]->sub(1);
             }
 
             $serverRequest = ServerRequest::from($request);
