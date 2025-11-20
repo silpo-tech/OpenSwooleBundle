@@ -328,7 +328,7 @@ class Server
             $mutex = $this->needSyncWorker()
                 ? $this->workerMutexPool?->getOrCreate($workerId)
                 : null;
-            
+
             if ($mutex) {
                 $this->perWorkerWaitingCounters[$workerId]->add(1);
                 $mutex->lock();
