@@ -457,4 +457,9 @@ class Server
     {
         $this->onShutdown = $onShutdown;
     }
+
+    public function getPerWorkerWaitingCounters(): array
+    {
+        return $this->perWorkerWaitingCounters;
+    }
 }
