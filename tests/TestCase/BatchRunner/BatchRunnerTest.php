@@ -254,6 +254,42 @@ final class BatchRunnerTest extends TestCase
         ];
     }
 
+    public function testErrorHandlerIsRestoredAfterRun(): void
+    {
+        $customHandler = static fn () => false;
+        set_error_handler($customHandler);
+
+        try {
+            BatchRunner::fromCallables([static fn () => 'ok'])->runAll();
+
+            $activeHandler = set_error_handler(static fn () => false);
+            restore_error_handler();
+
+            self::assertSame($customHandler, $activeHandler);
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    public function testErrorHandlerIsRestoredAfterException(): void
+    {
+        $customHandler = static fn () => false;
+        set_error_handler($customHandler);
+
+        try {
+            BatchRunner::fromCallables([static function () {
+                throw new \RuntimeException('fail');
+            }])->runAll();
+        } catch (\Throwable) {
+        } finally {
+            $activeHandler = set_error_handler(static fn () => false);
+            restore_error_handler();
+            restore_error_handler();
+        }
+
+        self::assertSame($customHandler, $activeHandler);
+    }
+
     public static function createCallablesWithException(): array
     {
         return [
