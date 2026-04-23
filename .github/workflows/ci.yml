@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4', '8.5']
     steps:
     - uses: actions/checkout@v6
     - name: Build and save Docker image
@@ -30,7 +30,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4', '8.5']
         dependency-version: [prefer-lowest, prefer-stable]
 
     name: Test PHP ${{ matrix.php-version }} - ${{ matrix.dependency-version }}
@@ -59,11 +59,11 @@ jobs:
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:run
 
     - name: Run tests with coverage
-      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3'
+      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.4'
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:coverage
 
     - name: Upload coverage reports to Codecov
-      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.3'
+      if: matrix.dependency-version == 'prefer-stable' && matrix.php-version == '8.4'
       uses: codecov/codecov-action@v6
       with:
         file: ./reports/coverage/clover.xml
@@ -85,16 +85,16 @@ jobs:
     - name: Download Docker image
       uses: actions/download-artifact@v8
       with:
-        name: openswoole-bundle-image-8.3
+        name: openswoole-bundle-image-8.4
 
     - name: Load Docker image
-      run: docker load < openswoole-bundle-8.3.tar.gz
+      run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHPStan
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/phpstan analyse --error-format=github --memory-limit=-1
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/phpstan analyse --error-format=github --memory-limit=-1
 
   code-style:
     runs-on: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
       run: docker load < openswoole-bundle-8.3.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHP CS Fixer
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.3 bin/php-cs-fixer fix --dry-run --diff --verbose
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/php-cs-fixer fix --dry-run --diff --verbose
