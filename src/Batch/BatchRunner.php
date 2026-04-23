@@ -127,10 +127,17 @@ final class BatchRunner
 
         $this->setHookFlags();
 
-        if (CoroutineHelper::inCoroutine()) {
-            $this->startWaitGroup();
-        } else {
-            $this->startScheduler();
+        $previousErrorHandler = $this->captureCurrentErrorHandler();
+        set_error_handler($previousErrorHandler ?? static fn () => false);
+
+        try {
+            if (CoroutineHelper::inCoroutine()) {
+                $this->startWaitGroup();
+            } else {
+                $this->startScheduler();
+            }
+        } finally {
+            restore_error_handler();
         }
 
         $this->setPrevHookFlags();
@@ -182,13 +189,8 @@ final class BatchRunner
         $eventDispatcher = $this->eventDispatcher;
         $batchRunner = $this;
 
-        $previousErrorHandler = $this->captureCurrentErrorHandler();
-
-        return static function () use ($resultChannel, $key, $callable, $eventDispatcher, $batchRunner, $previousErrorHandler): void {
+        return static function () use ($resultChannel, $key, $callable, $eventDispatcher, $batchRunner): void {
             $eventDispatcher?->dispatch(new BatchRunnerItemStarted($batchRunner, (string) $key));
-
-            // Replace PHPUnit's error handler for the duration of the callable.
-            set_error_handler($previousErrorHandler ?? static fn () => false);
 
             try {
                 $result = Result::fromValue($callable());
@@ -202,8 +204,6 @@ final class BatchRunner
                 $eventDispatcher?->dispatch(
                     new BatchRunnerItemEndedWithException($batchRunner, (string) $key, $e),
                 );
-            } finally {
-                restore_error_handler();
             }
             $resultChannel->push([$key, $result]);
         };
