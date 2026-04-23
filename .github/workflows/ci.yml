@@ -107,10 +107,10 @@ jobs:
     - name: Download Docker image
       uses: actions/download-artifact@v8
       with:
-        name: openswoole-bundle-image-8.3
+        name: openswoole-bundle-image-8.4
 
     - name: Load Docker image
-      run: docker load < openswoole-bundle-8.3.tar.gz
+      run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
