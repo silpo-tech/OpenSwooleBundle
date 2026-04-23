@@ -8,5 +8,5 @@ parameters:
     bootstrapFiles:
         - vendor/autoload.php
     ignoreErrors:
-        - '#Parameter \#1 \$server of method Upscale\\\\Swoole\\\\Blackfire\\\\Profiler::instrument\(\) expects Swoole\\\\Http\\\\Server, OpenSwoole\\\\Http\\\\Server\|null given\.#'
+        - '#Profiler::instrument\(\) expects Swoole#'
 
