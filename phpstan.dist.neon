@@ -7,6 +7,3 @@ parameters:
         - vendor
     bootstrapFiles:
         - vendor/autoload.php
-    ignoreErrors:
-        - '#Profiler::instrument\(\) expects Swoole#'
-

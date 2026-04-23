@@ -86,36 +86,44 @@ jobs:
 
   static-analysis:
     runs-on: ubuntu-latest
+    needs: build
     name: Static Analysis
 
     steps:
     - uses: actions/checkout@v6
 
-    - uses: shivammathur/setup-php@v2
+    - name: Download Docker image
+      uses: actions/download-artifact@v8
       with:
-        php-version: '8.4'
-        coverage: none
+        name: openswoole-bundle-image-8.4
+
+    - name: Load Docker image
+      run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHPStan
-      run: bin/phpstan analyse --error-format=github --memory-limit=-1
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/phpstan analyse --error-format=github --memory-limit=-1
 
   code-style:
     runs-on: ubuntu-latest
+    needs: build
     name: Code Style
 
     steps:
     - uses: actions/checkout@v6
 
-    - uses: shivammathur/setup-php@v2
+    - name: Download Docker image
+      uses: actions/download-artifact@v8
       with:
-        php-version: '8.4'
-        coverage: none
+        name: openswoole-bundle-image-8.4
+
+    - name: Load Docker image
+      run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
-      run: composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
 
     - name: Run PHP CS Fixer
-      run: bin/php-cs-fixer fix --dry-run --diff --verbose
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/php-cs-fixer fix --dry-run --diff --verbose
