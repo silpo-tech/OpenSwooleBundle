@@ -182,13 +182,8 @@ final class BatchRunner
         $eventDispatcher = $this->eventDispatcher;
         $batchRunner = $this;
 
-        $previousErrorHandler = $this->captureCurrentErrorHandler();
-
-        return static function () use ($resultChannel, $key, $callable, $eventDispatcher, $batchRunner, $previousErrorHandler): void {
+        return static function () use ($resultChannel, $key, $callable, $eventDispatcher, $batchRunner): void {
             $eventDispatcher?->dispatch(new BatchRunnerItemStarted($batchRunner, (string) $key));
-
-            // Replace PHPUnit's error handler for the duration of the callable.
-            set_error_handler($previousErrorHandler ?? static fn () => false);
 
             try {
                 $result = Result::fromValue($callable());
@@ -202,8 +197,6 @@ final class BatchRunner
                 $eventDispatcher?->dispatch(
                     new BatchRunnerItemEndedWithException($batchRunner, (string) $key, $e),
                 );
-            } finally {
-                restore_error_handler();
             }
             $resultChannel->push([$key, $result]);
         };
@@ -221,23 +214,6 @@ final class BatchRunner
         if ($this->setRuntimeHooks) {
             Runtime::setHookFlags($this->prevHookFlags);
         }
-    }
-
-    /**
-     * Captures the currently active error handler without replacing it.
-     *
-     * PHPUnit registers its own error handler that traverses the call stack via
-     * debug_backtrace() to find the TestCase object. Inside an OpenSwoole coroutine
-     * the call stack no longer contains the TestCase, which causes
-     * NoTestCaseObjectOnCallStackException. By temporarily replacing the error
-     * handler with the one active before PHPUnit's, we avoid the crash.
-     */
-    private function captureCurrentErrorHandler(): callable|null
-    {
-        $handler = set_error_handler(static fn () => false);
-        restore_error_handler();
-
-        return $handler;
     }
 
     private function ensureNotStarted(): void
