@@ -13,13 +13,13 @@ jobs:
       matrix:
         php-version: ['8.2', '8.3', '8.4']
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Build and save Docker image
       run: |
         docker build --build-arg PHP_VERSION=${{ matrix.php-version }} -t openswoole-bundle:${{ matrix.php-version }} .
         docker save openswoole-bundle:${{ matrix.php-version }} | gzip > openswoole-bundle-${{ matrix.php-version }}.tar.gz
     - name: Upload Docker image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: openswoole-bundle-image-${{ matrix.php-version }}
         path: openswoole-bundle-${{ matrix.php-version }}.tar.gz
@@ -40,12 +40,12 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Download Docker image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: openswoole-bundle-image-${{ matrix.php-version }}
 
@@ -80,10 +80,10 @@ jobs:
     name: Static Analysis
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download Docker image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: openswoole-bundle-image-8.3
 
@@ -102,10 +102,10 @@ jobs:
     name: Code Style
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download Docker image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: openswoole-bundle-image-8.3
 
