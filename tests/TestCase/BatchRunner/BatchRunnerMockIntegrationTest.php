@@ -25,7 +25,8 @@ final class BatchRunnerMockIntegrationTest extends TestCase
         $mock = $this->createMock(SomeServiceInterface::class);
         $mock->expects(self::once())
             ->method('fetch')
-            ->willReturn(['item1', 'item2']);
+            ->willReturn(['item1', 'item2'])
+        ;
 
         $results = BatchRunner::fromCallables([
             static fn () => $mock->fetch(),
@@ -39,12 +40,14 @@ final class BatchRunnerMockIntegrationTest extends TestCase
         $mockA = $this->createMock(SomeServiceInterface::class);
         $mockA->expects(self::once())
             ->method('fetch')
-            ->willReturn('result-a');
+            ->willReturn('result-a')
+        ;
 
         $mockB = $this->createMock(SomeServiceInterface::class);
         $mockB->expects(self::once())
             ->method('fetch')
-            ->willReturn('result-b');
+            ->willReturn('result-b')
+        ;
 
         $results = BatchRunner::fromCallables([
             'a' => static fn () => $mockA->fetch(),
