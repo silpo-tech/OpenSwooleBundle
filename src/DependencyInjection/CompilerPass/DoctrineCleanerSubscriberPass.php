@@ -12,7 +12,7 @@ use Symfony\Component\DependencyInjection\Reference;
 
 class DoctrineCleanerSubscriberPass implements CompilerPassInterface
 {
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         foreach (['doctrine_mongodb', 'doctrine'] as $definitionId) {
             if ($container->hasDefinition($definitionId)) {

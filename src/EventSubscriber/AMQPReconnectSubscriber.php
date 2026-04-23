@@ -32,7 +32,7 @@ final readonly class AMQPReconnectSubscriber implements EventSubscriberInterface
     /**
      * @throws \Exception
      */
-    public function onKernelException(ExceptionEvent $event)
+    public function onKernelException(ExceptionEvent $event): void
     {
         if ($event->getThrowable() instanceof AMQPExceptionInterface) {
             $this->server->stopWorker();

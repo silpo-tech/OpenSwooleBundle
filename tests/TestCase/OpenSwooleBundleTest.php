@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class OpenSwooleBundleTest extends TestCase
 {
-    public function testBuild()
+    public function testBuild(): void
     {
         $containerBuilder = new ContainerBuilder();
         $bundle = new OpenSwooleBundle();
