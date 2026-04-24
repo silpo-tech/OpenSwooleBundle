@@ -125,17 +125,23 @@ final class BatchRunner
         $this->eventDispatcher?->dispatch(new BatchRunnerStarted($this));
         $this->started = true;
 
+        $previousErrorHandler = $this->captureCurrentErrorHandler();
+        set_error_handler($previousErrorHandler ?? static fn () => false);
         $this->setHookFlags();
 
-        if (CoroutineHelper::inCoroutine()) {
-            $this->startWaitGroup();
-        } else {
+        try {
+            if (CoroutineHelper::inCoroutine()) {
+                $this->startWaitGroup();
+
+                return;
+            }
+
             $this->startScheduler();
+        } finally {
+            $this->setPrevHookFlags();
+            restore_error_handler();
+            $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
         }
-
-        $this->setPrevHookFlags();
-
-        $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
     }
 
     private function startWaitGroup(): void
@@ -214,6 +220,23 @@ final class BatchRunner
         if ($this->setRuntimeHooks) {
             Runtime::setHookFlags($this->prevHookFlags);
         }
+    }
+
+    /**
+     * Captures the currently active error handler without replacing it.
+     *
+     * PHPUnit registers its own error handler that traverses the call stack via
+     * debug_backtrace() to find the TestCase object. Inside an OpenSwoole coroutine
+     * the call stack no longer contains the TestCase, which causes
+     * NoTestCaseObjectOnCallStackException. By temporarily replacing the error
+     * handler with the one active before PHPUnit's, we avoid the crash.
+     */
+    private function captureCurrentErrorHandler(): callable|null
+    {
+        $handler = set_error_handler(static fn () => false);
+        restore_error_handler();
+
+        return $handler;
     }
 
     private function ensureNotStarted(): void

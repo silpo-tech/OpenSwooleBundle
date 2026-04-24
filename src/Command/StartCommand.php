@@ -14,7 +14,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class StartCommand extends ServerCommand
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('openswoole:server:start')

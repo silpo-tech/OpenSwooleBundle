@@ -139,7 +139,7 @@ final class OpenSwooleExtensionTest extends TestCase
     }
 
     #[DataProvider('providerLoad')]
-    public function testLoad(array $config, array $assertServices, array $expected)
+    public function testLoad(array $config, array $assertServices, array $expected): void
     {
         $extension = new OpenSwooleExtension();
         $containerBuilder = new ContainerBuilder();

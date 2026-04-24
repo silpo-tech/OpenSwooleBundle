@@ -7,5 +7,3 @@ parameters:
         - vendor
     bootstrapFiles:
         - vendor/autoload.php
-    ignoreErrors:
-        - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)#'
