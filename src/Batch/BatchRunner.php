@@ -138,9 +138,8 @@ final class BatchRunner
         } finally {
             $this->setPrevHookFlags();
             restore_error_handler();
+            $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
         }
-
-        $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
     }
 
     private function startWaitGroup(): void
