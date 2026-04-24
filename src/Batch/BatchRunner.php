@@ -125,10 +125,9 @@ final class BatchRunner
         $this->eventDispatcher?->dispatch(new BatchRunnerStarted($this));
         $this->started = true;
 
-        $this->setHookFlags();
-
         $previousErrorHandler = $this->captureCurrentErrorHandler();
         set_error_handler($previousErrorHandler ?? static fn () => false);
+        $this->setHookFlags();
 
         try {
             if (CoroutineHelper::inCoroutine()) {
@@ -137,10 +136,9 @@ final class BatchRunner
                 $this->startScheduler();
             }
         } finally {
+            $this->setPrevHookFlags();
             restore_error_handler();
         }
-
-        $this->setPrevHookFlags();
 
         $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
     }
