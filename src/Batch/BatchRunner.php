@@ -132,9 +132,11 @@ final class BatchRunner
         try {
             if (CoroutineHelper::inCoroutine()) {
                 $this->startWaitGroup();
-            } else {
-                $this->startScheduler();
+
+                return;
             }
+
+            $this->startScheduler();
         } finally {
             $this->setPrevHookFlags();
             restore_error_handler();
