@@ -26,6 +26,8 @@ final class BatchRunner
     private array $results = [];
     private array $throwables = [];
     private bool $started = false;
+    /** @var list<array{int, string, string, int}> */
+    private array $collectedErrors = [];
 
     /**
      * @param array<array-key, callable> $callables
@@ -125,8 +127,7 @@ final class BatchRunner
         $this->eventDispatcher?->dispatch(new BatchRunnerStarted($this));
         $this->started = true;
 
-        $previousErrorHandler = $this->captureCurrentErrorHandler();
-        set_error_handler($previousErrorHandler ?? static fn () => false);
+        $errorHandlerReplaced = $this->replacePhpUnitErrorHandler();
         $this->setHookFlags();
 
         try {
@@ -139,7 +140,12 @@ final class BatchRunner
             $this->startScheduler();
         } finally {
             $this->setPrevHookFlags();
-            restore_error_handler();
+
+            if ($errorHandlerReplaced) {
+                restore_error_handler();
+                $this->replayCollectedErrors();
+            }
+
             $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
         }
     }
@@ -223,20 +229,61 @@ final class BatchRunner
     }
 
     /**
-     * Captures the currently active error handler without replacing it.
-     *
-     * PHPUnit registers its own error handler that traverses the call stack via
-     * debug_backtrace() to find the TestCase object. Inside an OpenSwoole coroutine
-     * the call stack no longer contains the TestCase, which causes
-     * NoTestCaseObjectOnCallStackException. By temporarily replacing the error
-     * handler with the one active before PHPUnit's, we avoid the crash.
+     * If PHPUnit's error handler is active, replaces it with a collecting handler.
+     * PHPUnit's handler traverses the call stack to find the TestCase object,
+     * which does not exist inside coroutines. In production this is a no-op.
      */
-    private function captureCurrentErrorHandler(): callable|null
+    private function replacePhpUnitErrorHandler(): bool
     {
-        $handler = set_error_handler(static fn () => false);
+        // Узнаём текущий error handler: ставим временный, получаем предыдущий
+        $current = set_error_handler(static fn () => false);
+        // Сразу убираем временный — всё как было
         restore_error_handler();
 
-        return $handler;
+        // Если текущий handler — не PHPUnit'овский, ничего не делаем.
+        // В продакшене тут выходим — поведение не меняется.
+        if (!$current instanceof \PHPUnit\Runner\ErrorHandler) {
+            return false;
+        }
+
+        $collectedErrors = &$this->collectedErrors;
+
+        // Ставим свой handler вместо PHPUnit'овского.
+        // Он не лезет в стек — просто складывает ошибки в массив.
+        // return true означает "ошибка обработана, PHP не делай ничего дальше".
+        set_error_handler(static function (int $errno, string $errstr, string $errfile, int $errline) use (&$collectedErrors): bool {
+            $collectedErrors[] = [$errno, $errstr, $errfile, $errline];
+
+            return true;
+        });
+
+        return true;
+    }
+
+    /**
+     * Replays collected errors after PHPUnit's handler is restored,
+     * so PHPUnit can see them with TestCase on the call stack.
+     */
+    private function replayCollectedErrors(): void
+    {
+        $errors = $this->collectedErrors;
+        $this->collectedErrors = [];
+
+        foreach ($errors as [$errno, $errstr]) {
+            // trigger_error() принимает только E_USER_* уровни.
+            // Конвертируем: E_WARNING → E_USER_WARNING, E_DEPRECATED → E_USER_DEPRECATED,
+            // всё остальное (E_NOTICE и т.д.) → E_USER_NOTICE.
+            $userLevel = match (true) {
+                ($errno & (\E_WARNING | \E_USER_WARNING)) !== 0 => \E_USER_WARNING,
+                ($errno & (\E_DEPRECATED | \E_USER_DEPRECATED)) !== 0 => \E_USER_DEPRECATED,
+                default => \E_USER_NOTICE,
+            };
+
+            // @ подавляет ошибку если error_reporting её не включает.
+            // PHPUnit'овский handler (уже восстановлен) поймает её,
+            // сделает debug_backtrace(), найдёт TestCase в стеке — всё ок.
+            @trigger_error($errstr, $userLevel);
+        }
     }
 
     private function ensureNotStarted(): void
