@@ -43,5 +43,7 @@ class OpenSwooleExtension extends Extension
             $definition->replaceArgument(9, new Reference(TaskHandlerInterface::class));
             $definition->replaceArgument(10, new Reference(TaskFinishHandlerInterface::class));
         }
+
+        $container->setParameter('openswoole.use_fiber_context', $config['use_fiber_context']);
     }
 }
