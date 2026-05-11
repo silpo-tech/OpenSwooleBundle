@@ -21,7 +21,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 
 final class BatchRunner
 {
-    private static ?bool $forceSequential = null;
+    private static bool|null $forceSequential = null;
 
     private int $prevHookFlags;
     private int $callablesCount;
@@ -48,7 +48,7 @@ final class BatchRunner
     /**
      * Force sequential mode on/off globally. Pass null to restore auto-detection.
      */
-    public static function forceSequential(?bool $force): void
+    public static function forceSequential(bool|null $force): void
     {
         self::$forceSequential = $force;
     }

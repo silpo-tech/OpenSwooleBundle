@@ -30,6 +30,7 @@ final class BatchRunnerTest extends TestCase
     {
         BatchRunner::forceSequential(null);
     }
+
     public function testRunAllInCoroutine(): void
     {
         $data = [];
