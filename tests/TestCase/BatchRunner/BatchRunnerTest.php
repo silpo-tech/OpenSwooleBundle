@@ -21,6 +21,15 @@ use Symfony\Component\Stopwatch\Stopwatch;
 
 final class BatchRunnerTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        BatchRunner::forceSequential(false);
+    }
+
+    protected function tearDown(): void
+    {
+        BatchRunner::forceSequential(null);
+    }
     public function testRunAllInCoroutine(): void
     {
         $data = [];

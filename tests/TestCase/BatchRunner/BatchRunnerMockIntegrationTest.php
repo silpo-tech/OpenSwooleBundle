@@ -5,38 +5,65 @@ declare(strict_types=1);
 namespace OpenSwooleBundle\Tests\TestCase\BatchRunner;
 
 use OpenSwooleBundle\Batch\BatchRunner;
+use OpenSwooleBundle\Exception\BatchRunException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Verifies that PHPUnit mock objects can be used inside BatchRunner coroutines.
+ * Verifies that PHPUnit mock objects work inside BatchRunner when running sequentially.
  *
- * PHPUnit (>=11.5.49) registers a custom error handler that traverses the call stack
- * via debug_backtrace() to locate the TestCase instance. Inside an OpenSwoole coroutine
- * the call stack is separate, so the TestCase is not found and
- * NoTestCaseObjectOnCallStackException is thrown.
- *
- * BatchRunner now captures the previous error handler and restores it inside each
- * coroutine, preventing the crash.
+ * In test environments (APP_ENV=test or OPENSWOOLE_SEQUENTIAL=1), BatchRunner auto-detects
+ * and runs callables sequentially without coroutines, avoiding the
+ * NoTestCaseObjectOnCallStackException that occurs when PHPUnit's debug_backtrace()
+ * cannot find the TestCase inside a coroutine's separate call stack.
  */
 final class BatchRunnerMockIntegrationTest extends TestCase
 {
-    public function testMockCanBeInvokedInsideCoroutine(): void
+    protected function tearDown(): void
     {
-        $mock = $this->createMock(SomeServiceInterface::class);
+        BatchRunner::forceSequential(null);
+    }
+
+    public function testMockCanBeInvokedInsideSequentialBatchRunner(): void
+    {
+        BatchRunner::forceSequential(true);
+
+        $mock = $this->createMock(SomeServiceWithArgumentInterface::class);
         $mock->expects(self::once())
             ->method('fetch')
+            ->with('arg')
             ->willReturn(['item1', 'item2'])
         ;
 
         $results = BatchRunner::fromCallables([
-            static fn () => $mock->fetch(),
+            static fn () => $mock->fetch('arg'),
         ])->runAll();
 
         self::assertSame([['item1', 'item2']], $results);
     }
 
-    public function testMultipleMocksInParallelCoroutines(): void
+    public function testMockFailsInsideCoroutineBatchRunner(): void
     {
+        BatchRunner::forceSequential(false);
+
+        $mock = $this->createMock(SomeServiceWithArgumentInterface::class);
+        $mock->expects(self::once())
+            ->method('fetch')
+            ->with('arg')
+            ->willReturn('value')
+        ;
+
+        $this->expectException(BatchRunException::class);
+        $this->expectExceptionMessage('Cannot find TestCase object on call stack');
+
+        BatchRunner::fromCallables([
+            static fn () => $mock->fetch('arg'),
+        ])->runAll();
+    }
+
+    public function testMultipleMocksInSequentialBatchRunner(): void
+    {
+        BatchRunner::forceSequential(true);
+
         $mockA = $this->createMock(SomeServiceInterface::class);
         $mockA->expects(self::once())
             ->method('fetch')
@@ -57,9 +84,32 @@ final class BatchRunnerMockIntegrationTest extends TestCase
         self::assertSame('result-a', $results['a']);
         self::assertSame('result-b', $results['b']);
     }
+
+    public function testSequentialModeCanBeOverriddenPerInstance(): void
+    {
+        BatchRunner::forceSequential(true);
+
+        $mock = $this->createMock(SomeServiceInterface::class);
+        $mock->expects(self::once())
+            ->method('fetch')
+            ->willReturn('concurrent-result')
+        ;
+
+        // Override to run concurrently (coroutines) for this specific instance
+        $results = BatchRunner::fromCallables([
+            static fn () => $mock->fetch(),
+        ])->withSequential(false)->runAll();
+
+        self::assertSame(['concurrent-result'], $results);
+    }
 }
 
 interface SomeServiceInterface
 {
     public function fetch(): mixed;
+}
+
+interface SomeServiceWithArgumentInterface
+{
+    public function fetch(string $arg): mixed;
 }
