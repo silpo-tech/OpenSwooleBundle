@@ -7,6 +7,7 @@ namespace OpenSwooleBundle\Tests\TestCase\BatchRunner;
 use OpenSwooleBundle\Batch\BatchRunner;
 use OpenSwooleBundle\Exception\BatchRunException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * Verifies that PHPUnit mock objects work inside BatchRunner when running sequentially.
@@ -101,6 +102,24 @@ final class BatchRunnerMockIntegrationTest extends TestCase
         ])->withSequential(false)->runAll();
 
         self::assertSame(['concurrent-result'], $results);
+    }
+
+    public function testSequentialHandlesException(): void
+    {
+        BatchRunner::forceSequential(true);
+
+        $mock = $this->createMock(SomeServiceInterface::class);
+        $mock->expects(self::once())
+            ->method('fetch')
+            ->willThrowException(new RuntimeException('something off'))
+        ;
+
+        $this->expectException(BatchRunException::class);
+        $this->expectExceptionMessage('something off');
+
+        BatchRunner::fromCallables([
+            static fn () => $mock->fetch(),
+        ])->runAll();
     }
 }
 
