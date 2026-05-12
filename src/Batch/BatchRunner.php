@@ -59,8 +59,8 @@ final class BatchRunner
             return self::$forceSequential;
         }
 
-        return getenv('OPENSWOOLE_SEQUENTIAL') === '1'
-            || ($_ENV['OPENSWOOLE_SEQUENTIAL'] ?? '') === '1'
+        return getenv('OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL') === '1'
+            || ($_ENV['OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL'] ?? '') === '1'
             || getenv('APP_ENV') === 'test'
             || ($_ENV['APP_ENV'] ?? '') === 'test';
     }
