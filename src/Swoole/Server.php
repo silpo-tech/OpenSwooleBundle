@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OpenSwooleBundle\Swoole;
 
+use OpenSwoole\Atomic\Long as AtomicLong;
 use OpenSwoole\Core\Psr\Response as OpenSwooleResponse;
 use OpenSwoole\Core\Psr\ServerRequest;
 use OpenSwoole\Process;
@@ -72,6 +73,11 @@ class Server
      * @var WorkerMutexPool|null
      */
     private $workerMutexPool;
+
+    /**
+     * @var array<int, AtomicLong>
+     */
+    private $perWorkerWaitingCounters = [];
 
     /**
      * @var TaskHandlerInterface|null
@@ -309,6 +315,7 @@ class Server
         if ($this->useSyncWorker && CoroutineHelper::inCoroutine()) {
             $this->server->on('WorkerStart', function (\OpenSwoole\Http\Server $server, int $workerId) {
                 $this->needSyncWorker() && $this->workerMutexPool?->create($workerId);
+                $this->perWorkerWaitingCounters[$workerId] = new AtomicLong(0);
             });
         }
 
@@ -316,11 +323,17 @@ class Server
             $info = $this->server->getClientInfo($request->fd);
             $receiveTime = $info['last_recv_time'] ?? microtime(true);
             $reqTime = microtime(true);
+            $workerId = $this->server->getWorkerId();
 
             $mutex = $this->needSyncWorker()
-                ? $this->workerMutexPool?->getOrCreate($this->server->getWorkerId())
+                ? $this->workerMutexPool?->getOrCreate($workerId)
                 : null;
-            $mutex?->lock();
+
+            if ($mutex) {
+                $this->perWorkerWaitingCounters[$workerId]->add(1);
+                $mutex->lock();
+                $this->perWorkerWaitingCounters[$workerId]->sub(1);
+            }
 
             $serverRequest = ServerRequest::from($request);
             $sfRequest = $this->symfonyRequestFactory->createRequest($serverRequest);
@@ -336,15 +349,22 @@ class Server
 
             $handleStartTime = microtime(true);
 
+            $workerWaitingCounts = [];
+            foreach ($this->perWorkerWaitingCounters as $wId => $counter) {
+                $workerWaitingCounts[$wId] = $counter->get();
+            }
+
             $sfRequest->attributes->set('_req_openswoole_receive_time', $receiveTime);
             $sfRequest->attributes->set('_req_openswoole_request_time', $reqTime);
             $sfRequest->attributes->set('_req_openswoole_handle_start_time', $handleStartTime);
+            $sfRequest->attributes->set('_req_openswoole_worker_waiting_requests', $workerWaitingCounts);
+            $sfRequest->attributes->set('_req_openswoole_worker_id', $workerId);
 
             $reqLifecycleMetrics = [
                 'last_recv_time' => $receiveTime,
                 'req_time' => $reqTime,
                 'handle_start_time' => $handleStartTime,
-                'worker_id' => $this->server->getWorkerId(),
+                'worker_id' => $workerId,
                 'info' => $info,
             ];
             $sfRequest->attributes->set('_req_lifecycle_metrics', $reqLifecycleMetrics);
@@ -436,5 +456,10 @@ class Server
     public function setOnShutdown(\Closure $onShutdown): void
     {
         $this->onShutdown = $onShutdown;
+    }
+
+    public function getPerWorkerWaitingCounters(): array
+    {
+        return $this->perWorkerWaitingCounters;
     }
 }
