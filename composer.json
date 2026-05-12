@@ -10,7 +10,7 @@
     "symfony/config": "^6.0|^7.0",
     "symfony/http-kernel": "^6.0|^7.0",
     "symfony/console": "^6.0|^7.0",
-    "openswoole/core": "^22.1",
+    "openswoole/core": "^26.2",
     "monolog/monolog": "^3.0",
     "symfony/messenger": "^6.0|^7.0",
     "symfony/event-dispatcher": "^6.0|^7.0",
@@ -20,10 +20,10 @@
     "symfony/yaml": "^7.2"
   },
   "suggest": {
-    "ext-openswoole": "^22.0"
+    "ext-openswoole": "^26.0"
   },
   "require-dev": {
-    "openswoole/ide-helper": "^22.0",
+    "openswoole/ide-helper": "^26.0",
     "phpunit/phpunit": "^11.2",
     "symfony/doctrine-bridge": "^7.2",
     "sentry/sentry": "^4.10",

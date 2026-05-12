@@ -38,6 +38,9 @@ final class OpenSwooleExtensionTest extends TestCase
                     'openswoole_bundle.server.symfony_request_factory',
                     'openswoole_bundle.server.psr_factory',
                 ],
+                'parameters' => [
+                    'openswoole.use_fiber_context' => false,
+                ],
             ],
             'assertServices' => [
                 Server::class => static function (Definition $definition) {
@@ -136,6 +139,26 @@ final class OpenSwooleExtensionTest extends TestCase
                 },
             ],
         ];
+
+        yield 'with open_swoole_server.use_fiber_context' => [
+            'config' => [
+                'open_swoole_server' => [
+                    'use_fiber_context' => true,
+                    'options' => [
+                        'pid_file' => 'open_swoole_server.pid',
+                    ],
+                ],
+            ],
+            'expected' => [
+                'services' => [
+                    Server::class,
+                ],
+                'parameters' => [
+                    'openswoole.use_fiber_context' => true,
+                ],
+            ],
+            'assertServices' => [],
+        ];
     }
 
     #[DataProvider('providerLoad')]
@@ -150,6 +173,12 @@ final class OpenSwooleExtensionTest extends TestCase
 
             if (isset($assertServices[$service])) {
                 $assertServices[$service]($containerBuilder->getDefinition($service));
+            }
+        }
+
+        if (isset($expected['parameters'])) {
+            foreach ($expected['parameters'] as $name => $value) {
+                $this->assertSame($value, $containerBuilder->getParameter($name));
             }
         }
     }
