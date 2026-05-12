@@ -21,11 +21,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 
 final class BatchRunner
 {
+    private static bool|null $forceSequential = null;
+
     private int $prevHookFlags;
     private int $callablesCount;
     private array $results = [];
     private array $throwables = [];
     private bool $started = false;
+    private bool $sequential;
 
     /**
      * @param array<array-key, callable> $callables
@@ -39,6 +42,27 @@ final class BatchRunner
     ) {
         $this->callablesCount = count($callables);
         $this->prevHookFlags = Runtime::getHookFlags();
+        $this->sequential = self::shouldRunSequentially();
+    }
+
+    /**
+     * Force sequential mode on/off globally. Pass null to restore auto-detection.
+     */
+    public static function forceSequential(bool|null $force): void
+    {
+        self::$forceSequential = $force;
+    }
+
+    private static function shouldRunSequentially(): bool
+    {
+        if (self::$forceSequential !== null) {
+            return self::$forceSequential;
+        }
+
+        return getenv('OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL') === '1'
+            || ($_ENV['OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL'] ?? '') === '1'
+            || getenv('APP_ENV') === 'test'
+            || ($_ENV['APP_ENV'] ?? '') === 'test';
     }
 
     /**
@@ -89,6 +113,14 @@ final class BatchRunner
         return $this;
     }
 
+    public function withSequential(bool $sequential = true): self
+    {
+        $this->ensureNotStarted();
+        $this->sequential = $sequential;
+
+        return $this;
+    }
+
     /**
      * Blocks until all callables have been finished.
      * Throws BatchRunException if any of the callables threw an exception.
@@ -125,6 +157,12 @@ final class BatchRunner
         $this->eventDispatcher?->dispatch(new BatchRunnerStarted($this));
         $this->started = true;
 
+        if ($this->sequential) {
+            $this->startSequentially();
+
+            return;
+        }
+
         $previousErrorHandler = $this->captureCurrentErrorHandler();
         set_error_handler($previousErrorHandler ?? static fn () => false);
         $this->setHookFlags();
@@ -142,6 +180,23 @@ final class BatchRunner
             restore_error_handler();
             $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
         }
+    }
+
+    private function startSequentially(): void
+    {
+        foreach ($this->callables as $key => $callable) {
+            $this->eventDispatcher?->dispatch(new BatchRunnerItemStarted($this, (string) $key));
+
+            try {
+                $this->results[$key] = $callable();
+                $this->eventDispatcher?->dispatch(new BatchRunnerItemEndedSuccessfully($this, (string) $key));
+            } catch (\Throwable $e) {
+                $this->throwables[$key] = $e;
+                $this->eventDispatcher?->dispatch(new BatchRunnerItemEndedWithException($this, (string) $key, $e));
+            }
+        }
+
+        $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
     }
 
     private function startWaitGroup(): void
@@ -177,6 +232,8 @@ final class BatchRunner
                 }
                 --$this->callablesCount;
             }
+
+            $this->resultsChannel->close();
         };
     }
 
