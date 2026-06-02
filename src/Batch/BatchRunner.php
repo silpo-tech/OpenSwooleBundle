@@ -59,6 +59,10 @@ final class BatchRunner
             return self::$forceSequential;
         }
 
+        if (getenv('OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL') === '0' || ($_ENV['OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL'] ?? '') === '0') {
+            return false;
+        }
+
         return getenv('OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL') === '1'
             || ($_ENV['OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL'] ?? '') === '1'
             || getenv('APP_ENV') === 'test'
@@ -185,15 +189,8 @@ final class BatchRunner
     private function startSequentially(): void
     {
         foreach ($this->callables as $key => $callable) {
-            $this->eventDispatcher?->dispatch(new BatchRunnerItemStarted($this, (string) $key));
-
-            try {
-                $this->results[$key] = $callable();
-                $this->eventDispatcher?->dispatch(new BatchRunnerItemEndedSuccessfully($this, (string) $key));
-            } catch (\Throwable $e) {
-                $this->throwables[$key] = $e;
-                $this->eventDispatcher?->dispatch(new BatchRunnerItemEndedWithException($this, (string) $key, $e));
-            }
+            Coroutine::create($this->wrapCallable($this->resultsChannel, $key, $callable));
+            $this->popResult();
         }
 
         $this->eventDispatcher?->dispatch(new BatchRunnerEnded($this));
@@ -222,14 +219,7 @@ final class BatchRunner
     {
         return function (): void {
             while ($this->callablesCount > 0) {
-                /** @var Result $result */
-                [$key, $result] = $this->resultsChannel->pop(-1);
-
-                if (!$result->isOk()) {
-                    $this->throwables[$key] = $result->throwable;
-                } else {
-                    $this->results[$key] = $result->value;
-                }
+                $this->popResult();
                 --$this->callablesCount;
             }
 
@@ -300,6 +290,18 @@ final class BatchRunner
     {
         if ($this->started) {
             throw new BatchRunnerStartedException();
+        }
+    }
+
+    private function popResult(): void
+    {
+        /** @var Result $result */
+        [$key, $result] = $this->resultsChannel->pop(-1);
+
+        if (!$result->isOk()) {
+            $this->throwables[$key] = $result->throwable;
+        } else {
+            $this->results[$key] = $result->value;
         }
     }
 }

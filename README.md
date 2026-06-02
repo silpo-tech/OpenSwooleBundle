@@ -76,11 +76,13 @@ options:
 Testing with PHPUnit
 ----------------------------------
 
-`BatchRunner` automatically runs callables **sequentially** (without coroutines) when it detects a test environment. This avoids PHPUnit's `NoTestCaseObjectOnCallStackException` that occurs when mocks are invoked inside a coroutine (where `debug_backtrace()` cannot find the TestCase).
+`BatchRunner` automatically runs callables **sequentially** (inside coroutines but waits each callable to complete) when it detects a test environment. This avoids PHPUnit's `NoTestCaseObjectOnCallStackException` that occurs when mocks are invoked inside a coroutine (where `debug_backtrace()` cannot find the TestCase).
 
 Sequential mode is enabled when any of these is true:
 - `APP_ENV=test` (standard Symfony test env)
 - `OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL=1`
+
+And if `OPENSWOOLE_BATCH_RUNNER_SEQUENTIAL=0`even if `APP_ENV=test`, `BatchRunner` runs callable asynchronously.
 
 To override per-instance (e.g. to test actual concurrency):
 
