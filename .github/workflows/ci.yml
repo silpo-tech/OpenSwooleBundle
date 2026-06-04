@@ -63,7 +63,7 @@ jobs:
       run: docker load < openswoole-bundle-${{ matrix.php-version }}.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer update --${{ matrix.dependency-version }} --prefer-dist --no-interaction --ignore-platform-req=ext-openswoole --ignore-platform-req=ext-mongodb
 
     - name: Run test suite
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:${{ matrix.php-version }} composer test:run
@@ -101,7 +101,7 @@ jobs:
       run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-req=ext-openswoole --ignore-platform-req=ext-mongodb
 
     - name: Run PHPStan
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/phpstan analyse --error-format=github --memory-limit=-1
@@ -123,7 +123,7 @@ jobs:
       run: docker load < openswoole-bundle-8.4.tar.gz
 
     - name: Install dependencies
-      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-reqs
+      run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 composer install --prefer-dist --no-interaction --ignore-platform-req=ext-openswoole --ignore-platform-req=ext-mongodb
 
     - name: Run PHP CS Fixer
       run: docker run --rm -v ${{ github.workspace }}:/var/www/project openswoole-bundle:8.4 bin/php-cs-fixer fix --dry-run --diff --verbose

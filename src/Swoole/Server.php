@@ -23,9 +23,6 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Upscale\Swoole\Blackfire\Profiler;
 
-/**
- * Class Server.
- */
 class Server
 {
     /**

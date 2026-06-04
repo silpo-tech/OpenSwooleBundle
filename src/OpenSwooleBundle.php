@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OpenSwooleBundle;
 
-use OpenSwoole\Coroutine;
 use OpenSwooleBundle\DependencyInjection\CompilerPass\DoctrineCleanerSubscriberPass;
 use OpenSwooleBundle\DependencyInjection\CompilerPass\LoggerCompilerPass;
 use OpenSwooleBundle\DependencyInjection\CompilerPass\SentryPublisherSubscriberPass;
@@ -24,14 +23,5 @@ class OpenSwooleBundle extends Bundle
         $container->addCompilerPass(new DoctrineCleanerSubscriberPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new SentryPublisherSubscriberPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new LoggerCompilerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
-    }
-
-    public function boot(): void
-    {
-        parent::boot();
-
-        if ($this->container->getParameter('openswoole.use_fiber_context')) {
-            Coroutine::set(['use_fiber_context' => true]);
-        }
     }
 }
