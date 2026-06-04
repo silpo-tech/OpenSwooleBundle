@@ -20,10 +20,10 @@
     "symfony/yaml": "^7.2"
   },
   "suggest": {
-    "ext-openswoole": "^26.0"
+    "ext-openswoole": "^25.2"
   },
   "require-dev": {
-    "openswoole/ide-helper": "^26.0",
+    "openswoole/ide-helper": "^22.0",
     "phpunit/phpunit": "^11.2",
     "symfony/doctrine-bridge": "^7.2",
     "sentry/sentry": "^4.10",
