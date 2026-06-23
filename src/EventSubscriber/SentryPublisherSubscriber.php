@@ -21,7 +21,9 @@ final readonly class SentryPublisherSubscriber implements EventSubscriberInterfa
     {
         return [
             KernelEvents::TERMINATE => [
-                ['flush', 10],
+                // Must be lower than Sentry\SentryBundle\EventListener\TracingRequestListener (priority 5)
+                // to ensure the transaction is finished before we flush it to Sentry.
+                ['flush', 4],
             ],
         ];
     }

@@ -14,7 +14,7 @@ class SentryPublisherSubscriberPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container): void
     {
-        if ($container->hasDefinition('Sentry\ClientInterface')) {
+        if ($container->has('Sentry\ClientInterface')) {
             $definition = new Definition(SentryPublisherSubscriber::class);
             $definition->addTag('kernel.event_subscriber');
             $definition->setArguments([new Reference('Sentry\ClientInterface')]);
