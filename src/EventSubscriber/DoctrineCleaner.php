@@ -26,7 +26,8 @@ final readonly class DoctrineCleaner implements EventSubscriberInterface
     {
         return [
             KernelEvents::TERMINATE => [
-                ['clear', 10],
+                // Same as ContainerSubscriber::getSubscribedEvents
+                ['clear', 1],
             ],
         ];
     }

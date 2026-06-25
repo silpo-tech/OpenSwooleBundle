@@ -29,7 +29,10 @@ class ContainerSubscriber implements EventSubscriberInterface
     {
         return [
             KernelEvents::TERMINATE => [
-                ['clear', 10],
+                // Must be lower than SentryPublisherSubscriber (priority 4) which flushes Sentry transactions,
+                // and lower than Sentry\SentryBundle\EventListener\TracingRequestListener (priority 5) which finishes them.
+                // Resetting services (including Sentry hub via RuntimeContextListener::reset()) must happen last.
+                ['clear', 1],
             ],
         ];
     }
