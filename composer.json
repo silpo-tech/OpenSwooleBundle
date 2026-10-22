@@ -23,7 +23,7 @@
     "ext-openswoole": "^26.2"
   },
   "require-dev": {
-    "openswoole/ide-helper": "^22.0",
+    "openswoole/ide-helper": "^26.2",
     "phpunit/phpunit": "^11.2",
     "symfony/doctrine-bridge": "^7.2",
     "sentry/sentry": "^4.10",
