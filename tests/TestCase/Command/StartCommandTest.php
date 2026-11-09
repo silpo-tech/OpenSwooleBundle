@@ -18,18 +18,23 @@ use Symfony\Component\Console\Output\BufferedOutput;
 
 final class StartCommandTest extends TestCase
 {
+    private const string PID_FILE = '/tmp/openswoole_server.pid';
+    private const int PORT = 8899;
+    private const int START_TIMEOUT_SECONDS = 10;
+
     public function testExecute(): void
     {
+        @unlink(self::PID_FILE);
         $serverExit = new Atomic(0);
         $kernel = new Kernel();
 
         $server = new Server(
             '0.0.0.0',
-            8899,
+            self::PORT,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
-                'pid_file' => '/tmp/openswoole_server.pid',
+                'pid_file' => self::PID_FILE,
                 'dispatch_mode' => 3,
                 'log_level' => 5,
             ],
@@ -44,9 +49,14 @@ final class StartCommandTest extends TestCase
             $serverExit->wakeup();
         });
 
+        // StartCommand blocks this process, so a child stops the server. It waits for an HTTP response: the pid file
+        // and the bound port appear before the master handles SIGTERM, and an early signal kills or hangs PHPUnit.
         $process = new Process(
             static function () use ($server) {
-                usleep(10000);
+                $deadline = microtime(true) + self::START_TIMEOUT_SECONDS;
+                while (!self::isServerResponding() && microtime(true) < $deadline) {
+                    usleep(10000);
+                }
                 $server->stop();
             },
         );
@@ -56,7 +66,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8899,
+            '--port' => self::PORT,
         ]);
         $output = new BufferedOutput();
 
@@ -77,7 +87,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8899,
+            '--port' => self::PORT,
         ]);
         $output = new BufferedOutput();
 
@@ -94,11 +104,11 @@ final class StartCommandTest extends TestCase
 
         $server = new Server(
             '0.0.0.0',
-            8899,
+            self::PORT,
             [
                 'enable_coroutine' => false,
                 'worker_num' => 1,
-                'pid_file' => '/tmp/openswoole_server.pid',
+                'pid_file' => self::PID_FILE,
                 'dispatch_mode' => 3,
                 'log_level' => 5,
             ],
@@ -140,7 +150,7 @@ final class StartCommandTest extends TestCase
 
         $input = new ArrayInput([
             '--host' => '0.0.0.0',
-            '--port' => 8899,
+            '--port' => self::PORT,
         ]);
         $output = new BufferedOutput();
 
@@ -150,5 +160,20 @@ final class StartCommandTest extends TestCase
         self::assertStringContainsString('Server is running! Please stop the server before starting.', $output->fetch());
 
         $serverExit->wait();
+    }
+
+    private static function isServerResponding(): bool
+    {
+        $socket = @fsockopen('127.0.0.1', self::PORT, $errorCode, $errorMessage, 0.1);
+        if (false === $socket) {
+            return false;
+        }
+
+        stream_set_timeout($socket, 1);
+        fwrite($socket, "GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+        $statusLine = fgets($socket);
+        fclose($socket);
+
+        return \is_string($statusLine) && str_starts_with($statusLine, 'HTTP/');
     }
 }
