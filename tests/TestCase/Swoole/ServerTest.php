@@ -13,6 +13,7 @@ use OpenSwoole\Runtime;
 use OpenSwoole\Table;
 use OpenSwooleBundle\Batch\BatchRunner;
 use OpenSwooleBundle\Bridge\Messenger\OpenSwooleTaskTransport;
+use OpenSwooleBundle\Exception\OpenSwooleException;
 use OpenSwooleBundle\Swoole\Handler\MessengerSendTaskHandler;
 use OpenSwooleBundle\Swoole\Handler\NoopTaskFinishHandler;
 use OpenSwooleBundle\Swoole\Server;
@@ -45,9 +46,23 @@ final class ServerTest extends TestCase
 {
     public const TEST_LOG_FILE = 'test.log';
 
+    private const string SIGNAL_PID_FILE = '/tmp/openswoole_server_signal_test.pid';
+    private const int SIGTERM = 15;
+    private const int SIGUSR1 = 10;
+    private const float SIGNAL_EXIT_TIMEOUT_SECONDS = 5.0;
+
+    /** @var resource|null */
+    private $signalTargetProcess;
+
     protected function tearDown(): void
     {
         @unlink(self::TEST_LOG_FILE);
+        if (\is_resource($this->signalTargetProcess)) {
+            proc_terminate($this->signalTargetProcess, 9);
+            proc_close($this->signalTargetProcess);
+        }
+        $this->signalTargetProcess = null;
+        @unlink(self::SIGNAL_PID_FILE);
         parent::tearDown();
     }
 
@@ -388,6 +403,114 @@ final class ServerTest extends TestCase
         TEXT,
             $actualLogContent,
         );
+    }
+
+    #[DataProvider('providerStopReloadOk')]
+    public function testStopReloadOk(array $data = [], array $conditions = [], array $expected = []): void
+    {
+        $pid = $this->startSignalTargetProcess();
+        file_put_contents(self::SIGNAL_PID_FILE, (string) $pid);
+
+        $result = self::createSignalServer()->{$data['method']}();
+
+        self::assertTrue($result);
+        self::assertSame($expected['signal'], $this->waitForTerminationSignal());
+    }
+
+    public static function providerStopReloadOk(): iterable
+    {
+        yield 'stop: sends SIGTERM to the pid from the pid file' => [
+            'data' => ['method' => 'stop'],
+            'conditions' => [],
+            'expected' => ['signal' => self::SIGTERM],
+        ];
+
+        yield 'reload: sends SIGUSR1 to the pid from the pid file' => [
+            'data' => ['method' => 'reload'],
+            'conditions' => [],
+            'expected' => ['signal' => self::SIGUSR1],
+        ];
+    }
+
+    /**
+     * Without a pid, kill(0, ...) would signal this PHPUnit process group, so reaching the assertions proves no signal was sent.
+     */
+    #[DataProvider('providerStopReloadErrors')]
+    public function testStopReloadErrors(array $data = [], array $conditions = [], array $expected = []): void
+    {
+        if (null !== $conditions['pidFileContent']) {
+            file_put_contents(self::SIGNAL_PID_FILE, $conditions['pidFileContent']);
+        }
+
+        $this->expectException(OpenSwooleException::class);
+        $this->expectExceptionMessage($expected['message']);
+
+        self::createSignalServer()->{$data['method']}();
+    }
+
+    public static function providerStopReloadErrors(): iterable
+    {
+        $cases = [
+            'stop' => 'Swoole server not stopped!',
+            'reload' => 'Swoole server not reloaded!',
+        ];
+
+        foreach ($cases as $method => $message) {
+            yield "{$method}: throws when pid file is missing" => [
+                'data' => ['method' => $method],
+                'conditions' => ['pidFileContent' => null],
+                'expected' => ['message' => $message],
+            ];
+
+            yield "{$method}: throws when pid file is empty" => [
+                'data' => ['method' => $method],
+                'conditions' => ['pidFileContent' => ''],
+                'expected' => ['message' => $message],
+            ];
+
+            yield "{$method}: throws when pid file contains 0" => [
+                'data' => ['method' => $method],
+                'conditions' => ['pidFileContent' => '0'],
+                'expected' => ['message' => $message],
+            ];
+        }
+    }
+
+    private static function createSignalServer(): Server
+    {
+        return new Server(
+            '127.0.0.1',
+            0,
+            ['pid_file' => self::SIGNAL_PID_FILE],
+            0,
+            new Kernel(),
+            new NullLogger(),
+            false,
+            new HttpFoundationFactory(),
+            new PsrHttpFactory(),
+        );
+    }
+
+    private function startSignalTargetProcess(): int
+    {
+        $this->signalTargetProcess = proc_open(['sleep', '30'], [], $pipes);
+        self::assertIsResource($this->signalTargetProcess);
+
+        return proc_get_status($this->signalTargetProcess)['pid'];
+    }
+
+    private function waitForTerminationSignal(): int|null
+    {
+        $deadline = microtime(true) + self::SIGNAL_EXIT_TIMEOUT_SECONDS;
+        do {
+            $status = proc_get_status($this->signalTargetProcess);
+            if (!$status['running']) {
+                return $status['signaled'] ? $status['termsig'] : null;
+            }
+            usleep(10000);
+        } while (microtime(true) < $deadline);
+
+        return null;
     }
 
     private function makeRequest(int $numReq = 1): string
