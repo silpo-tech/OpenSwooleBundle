@@ -87,6 +87,11 @@ class Server
      */
     private const SIGUSR1 = 10;
 
+    /**
+     * SIGTERM signal number; defined here to avoid a hard dependency on ext-pcntl.
+     */
+    private const SIGTERM = 15;
+
     public function __construct(
         string $host,
         int $port,
@@ -176,7 +181,7 @@ class Server
      */
     public function stop(): bool
     {
-        $kill = Process::kill($this->getPid());
+        $kill = $this->sendSignal(self::SIGTERM);
 
         if (!$kill) {
             throw new OpenSwooleException('Swoole server not stopped!');
@@ -192,7 +197,7 @@ class Server
      */
     public function reload(): bool
     {
-        $reload = Process::kill($this->getPid(), self::SIGUSR1);
+        $reload = $this->sendSignal(self::SIGUSR1);
 
         if (!$reload) {
             throw new OpenSwooleException('Swoole server not reloaded!');
@@ -218,6 +223,20 @@ class Server
     public function stopWorker(int $workerId = -1)
     {
         return $this->server->stop($workerId);
+    }
+
+    /**
+     * Without a pid file getPid() returns 0, and kill(0, ...) would signal the caller's whole process group.
+     */
+    private function sendSignal(int $signal): bool
+    {
+        $pid = $this->getPid();
+
+        if ($pid <= 0) {
+            return false;
+        }
+
+        return Process::kill($pid, $signal);
     }
 
     private function getPid(): int
